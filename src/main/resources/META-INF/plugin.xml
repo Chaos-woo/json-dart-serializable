@@ -1,0 +1,56 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+    <id>json-dart-serializable</id>
+
+    <!-- Public plugin name should be written in Title Case.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
+    <name>Json-Dart-Serializable</name>
+    <version>0.3</version>
+
+    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+    <vendor email="785808933@qq.com" url="https://github.com/Chaos-woo">Chao.W</vendor>
+
+    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
+         Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
+         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
+    <description><![CDATA[
+    A simple tool for converting JSON string to Dart class. Also, the most important thing is that want to adapt the <a href=https://pub.dev/packages/json_serializable>json_serializable</a> library for developing Flutter application.
+  ]]></description>
+
+    <change-notes>
+        <![CDATA[
+        <div>✨ Feature:</div>
+        <div>
+            1. Support JSON string convert to Dart class with @json_serializable() and generate separate *.dart POJOs;<br/>
+            2. Only support JSON string is an object type;<br/>
+            3. Not support JSON array contain JSON array;<br/>
+            4. Strange JSON field names may generate unfriendly object classes, using @JsonKey() annotations to specify the correct name.
+        </dev>
+        <br/><br/>
+        <div>📖 Change log:</div>
+        <div>
+        V0.2: fix dart file name modify to UPPER_UNDERSCORE format.
+        V0.3: fix dart file name UPPER_CAMEL format can not to UPPER_UNDERSCORE format.
+        </div>
+
+        ]]>
+    </change-notes>
+
+    <!-- Product and plugin compatibility requirements.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <!-- Extension points defined by the plugin.
+         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
+    <extensions defaultExtensionNs="com.intellij">
+        <notificationGroup id="json-dart-serializable" displayType="BALLOON" />
+    </extensions>
+
+    <actions>
+        <action id="json_convert_dart_main_action" class="pers.chaos.jsondartserializable.actions.CreateJsonConvertDartClassAction"
+                text="Json to Dart Class" description="Json2Dart" icon="AllIcons.FileTypes.Json">
+            <add-to-group group-id="NewGroup" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>
