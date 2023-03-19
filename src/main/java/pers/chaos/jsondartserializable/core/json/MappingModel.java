@@ -169,7 +169,7 @@ public class MappingModel {
         String jsonSerializablePackAnno = "@JsonSerializable()\n";
         String jsonSerializablePack = "import 'package:json_annotation/json_annotation.dart';\n";
         String otherFileImport = "import '%s';\n";
-        String gFileImport = "part 'package:%s/%s/%s.g.dart';\n\n";
+        String gFileImport = "part '%s.g.dart';\n\n";
     }
 
     interface GeneratedToken {
@@ -231,7 +231,7 @@ public class MappingModel {
             completeFile.append("\n");
         }
 
-        completeFile.append(String.format(CommonPath.gFileImport, projectName, CommonPath.gFileDir, this.getDartFileName()))
+        completeFile.append(String.format(CommonPath.gFileImport, this.getDartFileName()))
                 .append(CommonPath.jsonSerializablePackAnno)
                 .append(String.format(GeneratedToken.className, this.getClassName()));
 

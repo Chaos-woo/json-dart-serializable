@@ -30,8 +30,8 @@
         <br/><br/>
         <div>📖 Change log:</div>
         <div>
-        V0.2: fix dart file name modify to UPPER_UNDERSCORE format.
-        V0.3: fix dart file name UPPER_CAMEL format can not to UPPER_UNDERSCORE format.
+        V0.2: fix dart file name modify to UPPER_UNDERSCORE format.<br/>
+        V0.3: fix dart file name UPPER_CAMEL format can not to UPPER_UNDERSCORE format.<br/>
         V0.4: fix create initial dart class [write only runWriteAction() thread] IntelliJ exception tip.
         </div>
 
