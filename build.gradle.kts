@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "pers.chaos"
-version = "0.3"
+version = "0.4"
 
 repositories {
     mavenCentral()

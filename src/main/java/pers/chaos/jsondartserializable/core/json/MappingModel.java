@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class MappingModel {
     private final String jsonFieldName;
@@ -188,67 +189,72 @@ public class MappingModel {
                                                  List<MappingModel> importModels,
                                                  VirtualFile parent, Project project) {
 
-        try {
-            String projectName = project.getName();
-            VirtualFile file = parent.createChildData(null, this.getDartFileName() + ".dart");
-            StringBuilder importFile = new StringBuilder();
-            if (CollectionUtils.isNotEmpty(importModels)) {
-                for (MappingModel importModel : importModels) {
-                    importFile.append(String.format(CommonPath.otherFileImport, importModel.getDartFileName() + ".dart"));
-                }
-                importFile.append("\n");
+        String projectName = project.getName();
+        AtomicReference<VirtualFile> fileRefer = new AtomicReference<>();
+
+        ApplicationManager.getApplication().runWriteAction(() -> {
+            try {
+                VirtualFile fileHandle = parent.createChildData(null, this.getDartFileName() + ".dart");
+                fileRefer.set(fileHandle);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
+        });
 
-            StringBuilder fields = new StringBuilder();
-            StringBuilder constructorArguments = new StringBuilder();
-            if (CollectionUtils.isNotEmpty(currentNodeInnerMappingModels)) {
-                for (MappingModel innerMappingModel : currentNodeInnerMappingModels) {
-                    fields.append(
-                            String.format(GeneratedToken.field, convertDartFieldType(innerMappingModel), innerMappingModel.getJsonFieldName())
-                    );
-                    constructorArguments.append(String.format(GeneratedToken.constructorPart, innerMappingModel.getJsonFieldName()));
-                }
+        StringBuilder importFile = new StringBuilder();
+        if (CollectionUtils.isNotEmpty(importModels)) {
+            for (MappingModel importModel : importModels) {
+                importFile.append(String.format(CommonPath.otherFileImport, importModel.getDartFileName() + ".dart"));
             }
-
-            StringBuilder completeFile = new StringBuilder();
-            completeFile.append(CommonPath.generatedFileHeaders.get(0))
-                    .append(CommonPath.generatedFileHeaders.get(1))
-                    .append(CommonPath.generatedFileHeaders.get(2))
-                    .append(CommonPath.jsonSerializablePack);
-            if (CollectionUtils.isNotEmpty(importModels)) {
-                completeFile.append(importFile);
-            } else {
-                completeFile.append("\n");
-            }
-
-            completeFile.append(String.format(CommonPath.gFileImport, projectName, CommonPath.gFileDir, this.getDartFileName()))
-                    .append(CommonPath.jsonSerializablePackAnno)
-                    .append(String.format(GeneratedToken.className, this.getClassName()));
-
-            if (CollectionUtils.isNotEmpty(currentNodeInnerMappingModels)) {
-                completeFile.append(fields);
-                completeFile.append("\n");
-            }
-
-            completeFile.append(
-                            String.format(GeneratedToken.constructor,
-                                    this.getClassName(),
-                                    CollectionUtils.isNotEmpty(currentNodeInnerMappingModels) ? "{" + constructorArguments.toString() + "}" : ""))
-                    .append(String.format(GeneratedToken.fromJson, this.getClassName(), this.getClassName()))
-                    .append(String.format(GeneratedToken.toJson, this.getClassName()))
-                    .append(GeneratedToken.classEOF);
-
-            ApplicationManager.getApplication().runWriteAction(() -> {
-                try {
-                    file.setBinaryContent(completeFile.toString().getBytes(StandardCharsets.UTF_8));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-        } catch (IOException e) {
-            System.out.println(ExceptionUtils.getStackTrace(e));
-            throw new RuntimeException(e);
+            importFile.append("\n");
         }
+
+        StringBuilder fields = new StringBuilder();
+        StringBuilder constructorArguments = new StringBuilder();
+        if (CollectionUtils.isNotEmpty(currentNodeInnerMappingModels)) {
+            for (MappingModel innerMappingModel : currentNodeInnerMappingModels) {
+                fields.append(
+                        String.format(GeneratedToken.field, convertDartFieldType(innerMappingModel), innerMappingModel.getJsonFieldName())
+                );
+                constructorArguments.append(String.format(GeneratedToken.constructorPart, innerMappingModel.getJsonFieldName()));
+            }
+        }
+
+        StringBuilder completeFile = new StringBuilder();
+        completeFile.append(CommonPath.generatedFileHeaders.get(0))
+                .append(CommonPath.generatedFileHeaders.get(1))
+                .append(CommonPath.generatedFileHeaders.get(2))
+                .append(CommonPath.jsonSerializablePack);
+        if (CollectionUtils.isNotEmpty(importModels)) {
+            completeFile.append(importFile);
+        } else {
+            completeFile.append("\n");
+        }
+
+        completeFile.append(String.format(CommonPath.gFileImport, projectName, CommonPath.gFileDir, this.getDartFileName()))
+                .append(CommonPath.jsonSerializablePackAnno)
+                .append(String.format(GeneratedToken.className, this.getClassName()));
+
+        if (CollectionUtils.isNotEmpty(currentNodeInnerMappingModels)) {
+            completeFile.append(fields);
+            completeFile.append("\n");
+        }
+
+        completeFile.append(
+                        String.format(GeneratedToken.constructor,
+                                this.getClassName(),
+                                CollectionUtils.isNotEmpty(currentNodeInnerMappingModels) ? "{" + constructorArguments.toString() + "}" : ""))
+                .append(String.format(GeneratedToken.fromJson, this.getClassName(), this.getClassName()))
+                .append(String.format(GeneratedToken.toJson, this.getClassName()))
+                .append(GeneratedToken.classEOF);
+
+        ApplicationManager.getApplication().runWriteAction(() -> {
+            try {
+                fileRefer.get().setBinaryContent(completeFile.toString().getBytes(StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     private String convertDartFieldType(MappingModel mappingModel) {
