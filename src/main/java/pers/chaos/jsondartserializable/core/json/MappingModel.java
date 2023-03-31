@@ -25,7 +25,7 @@ public class MappingModel {
     // generated dart property name
     private String dartPropertyName;
     // dart basis data type, e.g. String or int
-    private DartDataTypeEnum dartDataTypeEnum = DartDataTypeEnum.NONE;
+    private DartDataTypeEnum dartDataTypeEnum = DartDataTypeEnum.OBJECT;
     // current model mapping property is required
     private boolean dartPropertyRequired = true;
     // current model mapping property's default value,
@@ -128,7 +128,7 @@ public class MappingModel {
                 if (!node.isEmpty()) {
                     JsonNode firstChildNode = node.get(0);
                     if (firstChildNode.isObject()) {
-                        this.dartDataTypeEnum = DartDataTypeEnum.NONE;
+                        this.dartDataTypeEnum = DartDataTypeEnum.OBJECT;
                     } else if (firstChildNode.isArray()) {
                         throw new RuntimeException("Not support analysis array nesting");
                     } else {
@@ -152,7 +152,7 @@ public class MappingModel {
     }
 
     private DartDataTypeEnum getCustomDartDataType(JsonNode node) {
-        DartDataTypeEnum dartDataTypeEnum = DartDataTypeEnum.NONE;
+        DartDataTypeEnum dartDataTypeEnum = DartDataTypeEnum.OBJECT;
         if (node.isBoolean()) {
             dartDataTypeEnum = DartDataTypeEnum.BOOLEAN;
         } else if (node.isTextual()) {
@@ -380,7 +380,7 @@ public class MappingModel {
                 return "String";
             case BOOLEAN:
                 return "bool";
-            case NONE:
+            case OBJECT:
             default:
                 return "none";
         }

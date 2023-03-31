@@ -21,7 +21,7 @@ public class CreateJsonConvertDartClassAction extends AnAction {
         dialog.pack();
         dialog.setTitle("JSON to Dart Class Generated");
         dialog.setLocation(windowLocation.x + (windowSize.width - dialog.getWidth()) / 2, (int)(windowLocation.y + (windowSize.getHeight() - dialog.getHeight()) / 2));
-        dialog.setMinimumSize(new Dimension(600, 500));
+        dialog.setMinimumSize(new Dimension(800, 600));
         dialog.setVisible(true);
     }
 }

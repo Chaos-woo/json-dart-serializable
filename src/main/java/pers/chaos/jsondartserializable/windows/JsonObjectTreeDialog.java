@@ -84,7 +84,7 @@ public class JsonObjectTreeDialog extends JDialog {
         dialog.pack();
         dialog.setTitle("『OBJECT』's Mapping Model Table");
         dialog.setLocation(this.getLocation());
-        dialog.setMinimumSize(new Dimension(800, 500));
+        dialog.setMinimumSize(new Dimension(1200, 500));
         dialog.setVisible(true);
     }
 

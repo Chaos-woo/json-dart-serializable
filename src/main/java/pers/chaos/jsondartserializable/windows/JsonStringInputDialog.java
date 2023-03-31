@@ -92,7 +92,7 @@ public class JsonStringInputDialog extends JDialog {
             dialog.pack();
             dialog.setTitle("『JSON』's Mapping Model Table");
             dialog.setLocation(this.getLocation());
-            dialog.setMinimumSize(new Dimension(800, 500));
+            dialog.setMinimumSize(new Dimension(1200, 500));
             dialog.setVisible(true);
         } else {
             JsonObjectTreeDialog dialog = new JsonObjectTreeDialog(this.analysisMapping);

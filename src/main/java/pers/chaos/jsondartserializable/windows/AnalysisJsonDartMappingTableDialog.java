@@ -165,7 +165,7 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
 
         if (column == 2) {
             DartDataTypeEnum dartDataTypeEnum = (DartDataTypeEnum) tableModelData[row][column];
-            if (DartDataTypeEnum.NONE == dartDataTypeEnum) {
+            if (DartDataTypeEnum.OBJECT == dartDataTypeEnum) {
                 this.editableCellRecords[row][column] = false;
                 return false;
             }
@@ -173,7 +173,7 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
 
         if (column == 5) {
             DartDataTypeEnum dartDataTypeEnum = (DartDataTypeEnum) tableModelData[row][2];
-            if (DartDataTypeEnum.NONE != dartDataTypeEnum) {
+            if (DartDataTypeEnum.OBJECT != dartDataTypeEnum) {
                 this.editableCellRecords[row][column] = false;
                 return false;
             }
