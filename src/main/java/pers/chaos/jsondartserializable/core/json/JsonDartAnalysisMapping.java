@@ -5,13 +5,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import pers.chaos.jsondartserializable.utils.DartClassFileUtils;
+
+import java.util.List;
 
 public class JsonDartAnalysisMapping {
     private final String dartFileName;
     private final String className;
 
-    private MappingModel rootMappingModel;
+    private final MappingModel rootMappingModel;
 
     public JsonDartAnalysisMapping(String className, JsonNode node) {
         this.className = DartClassFileUtils.getDartClassName(className);
@@ -38,8 +42,21 @@ public class JsonDartAnalysisMapping {
     }
 
     public void generated(VirtualFile parent, Project project) {
+        this.innerMappingModelRebuildDescription(rootMappingModel.getInnerMappingModels());
         // start generate file by root mapping model
         rootMappingModel.cycleGeneratedDartFile(parent, project);
+    }
+
+    private void innerMappingModelRebuildDescription(List<MappingModel> innerMappingModels) {
+        for (MappingModel innerMappingModel : innerMappingModels) {
+            if (StringUtils.isBlank(innerMappingModel.getDescription())) {
+                innerMappingModel.setDescription(innerMappingModel.getJsonFieldName());
+            }
+
+            if (CollectionUtils.isNotEmpty(innerMappingModel.getInnerMappingModels())) {
+                innerMappingModelRebuildDescription(innerMappingModel.getInnerMappingModels());
+            }
+        }
     }
 
     public String getDartFileName() {

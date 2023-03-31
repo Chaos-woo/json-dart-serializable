@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "pers.chaos"
-version = "0.4"
+version = "0.5"
 
 repositories {
     mavenCentral()
@@ -38,6 +38,7 @@ tasks {
     withType<JavaCompile> {
         sourceCompatibility = "11"
         targetCompatibility = "11"
+        options.encoding = "UTF-8"
     }
 
     patchPluginXml {
@@ -53,5 +54,11 @@ tasks {
 
     publishPlugin {
         token.set(System.getenv("PUBLISH_TOKEN"))
+    }
+
+    processResources {
+        from("src/main/resources/assets") {
+            include("**/*.png")
+        }
     }
 }

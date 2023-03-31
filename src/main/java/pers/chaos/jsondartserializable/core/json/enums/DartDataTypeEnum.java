@@ -5,4 +5,5 @@ public enum DartDataTypeEnum {
     INT,
     DOUBLE,
     STRING,
+    NONE,
 }

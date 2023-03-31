@@ -20,4 +20,13 @@ public class DartClassFileUtils {
         }
         return jsonField.substring(0, 1).toUpperCase() + jsonField.substring(1);
     }
+
+    public static String getDartPropertyName(String jsonField) {
+        if (jsonField.contains("_")) {
+            return CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, jsonField);
+        } else if (jsonField.contains("-")) {
+            return CaseFormat.LOWER_HYPHEN.to(CaseFormat.LOWER_CAMEL, jsonField);
+        }
+        return jsonField.substring(0, 1).toLowerCase() + jsonField.substring(1);
+    }
 }

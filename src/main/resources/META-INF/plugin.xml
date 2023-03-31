@@ -6,7 +6,7 @@
     <!-- Public plugin name should be written in Title Case.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
     <name>Json-Dart-Serializable</name>
-    <version>0.4</version>
+    <version>0.5</version>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
     <vendor email="785808933@qq.com" url="https://github.com/Chaos-woo">Chao.W</vendor>
@@ -23,16 +23,20 @@
         <div>✨ Feature:</div>
         <div>
             1. Support JSON string convert to Dart class with @json_serializable() and generate separate *.dart POJOs;<br/>
-            2. Only support JSON string is an object type;<br/>
-            3. Not support JSON array contain JSON array;<br/>
-            4. Strange JSON field names may generate unfriendly object classes, using @JsonKey() annotations to specify the correct name.
+            2. Support preview Dart class to be generated after analysing JSON string;<br/>
+            3. Support edit Dart class field value and other properties before really generating;<br/>
+            4. Support automatically using @JsonKey annotation when detecting JSON field name different from POJO's property;<br/>
+            5. Only support JSON string is an object type;<br/>
+            6. Not support JSON array nesting;<br/>
+            7. Strange JSON field names may generate unfriendly object classes, using @JsonKey() annotations to specify the correct name.
         </dev>
         <br/><br/>
         <div>📖 Change log:</div>
         <div>
-        V0.2: fix dart file name modify to UPPER_UNDERSCORE format.<br/>
-        V0.3: fix dart file name UPPER_CAMEL format can not to UPPER_UNDERSCORE format.<br/>
-        V0.4: fix create initial dart class [write only runWriteAction() thread] IntelliJ exception tip.
+        V0.2: Fix dart file name modify to UPPER_UNDERSCORE format.<br/>
+        V0.3: Fix dart file name UPPER_CAMEL format can not to UPPER_UNDERSCORE format.<br/>
+        V0.4: Fix create initial dart class [write only runWriteAction() thread] IntelliJ exception tip.<br/>
+        V0.5: Add 『Preview Edit』 function. Click it and custom set any properties as you wish.<br/>
         </div>
 
         ]]>
