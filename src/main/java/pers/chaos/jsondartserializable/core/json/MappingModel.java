@@ -7,6 +7,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import pers.chaos.jsondartserializable.core.json.constants.GeneratedTemplate;
 import pers.chaos.jsondartserializable.core.json.enums.DartDataTypeEnum;
 import pers.chaos.jsondartserializable.core.json.enums.JsonTypeEnum;
@@ -215,6 +216,11 @@ public class MappingModel {
 
         ApplicationManager.getApplication().runWriteAction(() -> {
             try {
+                VirtualFile childFile = parent.findChild(this.getDartFileName() + ".dart");
+                if (Objects.nonNull(childFile)) {
+                    this.setDartFileName(this.getDartFileName() + "_" + RandomStringUtils.randomAlphabetic(4));
+                }
+
                 VirtualFile fileHandle = parent.createChildData(null, this.getDartFileName() + ".dart");
                 fileRefer.set(fileHandle);
             } catch (IOException e) {

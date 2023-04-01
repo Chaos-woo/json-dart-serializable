@@ -6,10 +6,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
+import pers.chaos.jsondartserializable.core.json.enums.JsonTypeEnum;
 import pers.chaos.jsondartserializable.utils.DartClassFileUtils;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class JsonDartAnalysisMapping {
     private final String dartFileName;
@@ -42,9 +47,35 @@ public class JsonDartAnalysisMapping {
     }
 
     public void generated(VirtualFile parent, Project project) {
+        // set default description of all mapping model
         this.innerMappingModelRebuildDescription(rootMappingModel.getInnerMappingModels());
+        // check whether exist dart file of the same name
+        final Set<String> existDartFileNames = new HashSet<>();
+        this.checkAllMappingModelExistSameNameDartFileName(existDartFileNames, rootMappingModel);
         // start generate file by root mapping model
         rootMappingModel.cycleGeneratedDartFile(parent, project);
+    }
+
+    private void checkAllMappingModelExistSameNameDartFileName(final Set<String> existDartFileNames, MappingModel mappingModel) {
+        if (mappingModel.isBasisJsonType()) {
+            return;
+        }
+
+        if (JsonTypeEnum.OBJECT == mappingModel.getJsonTypeEnum()) {
+            String dartFileName = mappingModel.getDartFileName();
+            if (existDartFileNames.contains(dartFileName)) {
+                String antiDuplicateDartFileNameEOF = RandomStringUtils.randomAlphabetic(4);
+                mappingModel.setDartFileName(dartFileName + "_" + antiDuplicateDartFileNameEOF);
+            }
+
+            existDartFileNames.add(mappingModel.getDartFileName());
+        }
+
+        if (CollectionUtils.isNotEmpty(mappingModel.getInnerMappingModels())) {
+            for (MappingModel innerMappingModel : mappingModel.getInnerMappingModels()) {
+                checkAllMappingModelExistSameNameDartFileName(existDartFileNames, innerMappingModel);
+            }
+        }
     }
 
     private void innerMappingModelRebuildDescription(List<MappingModel> innerMappingModels) {
@@ -57,10 +88,6 @@ public class JsonDartAnalysisMapping {
                 innerMappingModelRebuildDescription(innerMappingModel.getInnerMappingModels());
             }
         }
-    }
-
-    public String getDartFileName() {
-        return dartFileName + ".dart";
     }
 
     public MappingModel getRootMappingModel() {

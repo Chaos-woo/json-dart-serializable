@@ -9,7 +9,8 @@ public interface JsonAnalysisTableKeys {
         DART_PROPERTY_REQUIRED("dartPropertyRequired", 3, "Required?"),
         DART_PROPERTY_DEFAULT_VALUE("dartPropertyDefaultValue", 4, "Default value"),
         DART_FILE_NAME("dartFileName", 5, "Dart file name"),
-        DESCRIPTION("description", 6, "Field note"),
+        INNER_OBJECT_CLASS_NAME("className", 6, "Dart class name"),
+        DESCRIPTION("description", 7, "Field note"),
 
         ;
 

@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 
 public class JsonObjectTreeDialog extends JDialog {
 
-    private JsonDartAnalysisMapping analysisMapping;
+    private final JsonDartAnalysisMapping analysisMapping;
 
     private JPanel contentPane;
     private JButton buttonOK;

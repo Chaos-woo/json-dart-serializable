@@ -13,11 +13,13 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import pers.chaos.jsondartserializable.core.json.JsonAnalyser;
 import pers.chaos.jsondartserializable.core.json.JsonDartAnalysisMapping;
 import pers.chaos.jsondartserializable.core.json.MappingModel;
+import pers.chaos.jsondartserializable.utils.DartClassFileUtils;
 import pers.chaos.jsondartserializable.utils.NotificationUtils;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
@@ -75,6 +77,40 @@ public class JsonStringInputDialog extends JDialog {
                 KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0),
                 JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT
         );
+
+        textFieldClassName.addKeyListener(new KeyListener() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                if (Objects.nonNull(analysisMapping)) {
+                    JTextField textField = (JTextField) e.getSource();
+                    String newRootClassName = textField.getText();
+                    MappingModel rootMappingModel = analysisMapping.getRootMappingModel();
+                    rootMappingModel.setClassName(newRootClassName);
+                    rootMappingModel.setJsonFieldName(newRootClassName);
+                    rootMappingModel.setDartFileName(DartClassFileUtils.getDartFileNameByClassName(newRootClassName));
+                }
+            }
+            @Override
+            public void keyTyped(KeyEvent e) {}
+            @Override
+            public void keyPressed(KeyEvent e) {}
+        });
+
+        textFieldClassDescription.addKeyListener(new KeyListener() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                if (Objects.nonNull(analysisMapping)) {
+                    JTextField textField = (JTextField) e.getSource();
+                    String newRootModelDescription = textField.getText();
+                    analysisMapping.getRootMappingModel().setDescription(newRootModelDescription);
+                }
+            }
+
+            @Override
+            public void keyTyped(KeyEvent e) {}
+            @Override
+            public void keyPressed(KeyEvent e) {}
+        });
     }
 
     private void onPreviewEdit() {
@@ -162,22 +198,11 @@ public class JsonStringInputDialog extends JDialog {
         }
 
         String classDesc = textFieldClassDescription.getText();
+        MappingModel rootMappingModel = this.analysisMapping.getRootMappingModel();
         if (StringUtils.isNoneBlank(classDesc)) {
-            this.analysisMapping.getRootMappingModel().setDescription(classDesc);
+            rootMappingModel.setDescription(classDesc);
         }
 
-        try {
-            // output dart class from mapping model
-            outputDartClassModelFile(this.analysisMapping);
-        } catch (IOException e) {
-            showAnalysisErrorTip("Generate dart file fail");
-            NotificationUtils.showNotification(this.anActionEvent.getProject(), "Generated error", "Check it", NotificationType.WARNING);
-            return;
-        }
-        dispose();
-    }
-
-    private void outputDartClassModelFile(JsonDartAnalysisMapping analysisMapping) throws IOException {
         Project project = anActionEvent.getProject();
         if (Objects.isNull(project)) {
             return;
@@ -186,18 +211,39 @@ public class JsonStringInputDialog extends JDialog {
         // get user current focus virtual file's handle
         VirtualFile parent = anActionEvent.getData(CommonDataKeys.VIRTUAL_FILE);
         if (parent != null && parent.isDirectory()) {
-            VirtualFile child = parent.findChild(analysisMapping.getDartFileName());
+            VirtualFile child = parent.findChild(rootMappingModel.getDartFileName() + ".dart");
             if (Objects.nonNull(child)) {
-                NotificationUtils.showNotification(project, "Convert error", analysisMapping.getDartFileName() + ".dart exist", NotificationType.WARNING);
+                Messages.showErrorDialog(
+                        rootMappingModel.getDartFileName()
+                                + ".dart has exist, please modify root class name 『 "
+                                + rootMappingModel.getClassName() + " 』",
+                        "Generated Error");
                 return;
             }
+        }
 
+        try {
+            // output dart class from mapping model
+            outputDartClassModelFile(parent, project, this.analysisMapping);
+        } catch (IOException e) {
+            showAnalysisErrorTip("Generate dart file fail");
+            NotificationUtils.showNotification(this.anActionEvent.getProject(), "Generated error", "Check it", NotificationType.WARNING);
+            return;
+        }
+        dispose();
+    }
+
+    private void outputDartClassModelFile(VirtualFile parent, Project project, JsonDartAnalysisMapping analysisMapping) throws IOException {
+        if (parent != null && parent.isDirectory()) {
             // start generate dart class
             analysisMapping.generated(parent, project);
 
             // refresh  IntelliJ file system
             parent.refresh(false, true);
-            NotificationUtils.showNotification(project, "Convert success", analysisMapping.getDartFileName() + ".dart generated", NotificationType.INFORMATION);
+            NotificationUtils.showNotification(project,
+                    "Convert success",
+                    analysisMapping.getRootMappingModel().getDartFileName() + ".dart generated",
+                    NotificationType.INFORMATION);
         }
     }
 }

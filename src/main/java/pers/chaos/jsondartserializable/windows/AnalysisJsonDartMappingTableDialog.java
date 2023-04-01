@@ -158,12 +158,12 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
 
     private boolean tableCellEditableRuleVerify(final Object[][] tableModelData, int row, int column) {
         // any false result will be set editable records
-        if (column == 0) {
+        if (column == JsonAnalysisTableKeys.MappingModelTableReflectable.JSON_FIELD_NAME.getTableColumnIndex()) {
             this.editableCellRecords[row][column] = false;
             return false;
         }
 
-        if (column == 2) {
+        if (column == JsonAnalysisTableKeys.MappingModelTableReflectable.DART_DATA_TYPE.getTableColumnIndex()) {
             DartDataTypeEnum dartDataTypeEnum = (DartDataTypeEnum) tableModelData[row][column];
             if (DartDataTypeEnum.OBJECT == dartDataTypeEnum) {
                 this.editableCellRecords[row][column] = false;
@@ -171,8 +171,16 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
             }
         }
 
-        if (column == 5) {
-            DartDataTypeEnum dartDataTypeEnum = (DartDataTypeEnum) tableModelData[row][2];
+        if (column == JsonAnalysisTableKeys.MappingModelTableReflectable.DART_FILE_NAME.getTableColumnIndex()) {
+            DartDataTypeEnum dartDataTypeEnum = (DartDataTypeEnum) tableModelData[row][JsonAnalysisTableKeys.MappingModelTableReflectable.DART_DATA_TYPE.getTableColumnIndex()];
+            if (DartDataTypeEnum.OBJECT != dartDataTypeEnum) {
+                this.editableCellRecords[row][column] = false;
+                return false;
+            }
+        }
+
+        if (column == JsonAnalysisTableKeys.MappingModelTableReflectable.INNER_OBJECT_CLASS_NAME.getTableColumnIndex()) {
+            DartDataTypeEnum dartDataTypeEnum = (DartDataTypeEnum) tableModelData[row][JsonAnalysisTableKeys.MappingModelTableReflectable.DART_DATA_TYPE.getTableColumnIndex()];
             if (DartDataTypeEnum.OBJECT != dartDataTypeEnum) {
                 this.editableCellRecords[row][column] = false;
                 return false;
