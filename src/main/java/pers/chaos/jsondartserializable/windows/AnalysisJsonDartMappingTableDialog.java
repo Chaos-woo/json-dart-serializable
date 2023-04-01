@@ -3,6 +3,7 @@ package pers.chaos.jsondartserializable.windows;
 import pers.chaos.jsondartserializable.core.json.MappingModel;
 import pers.chaos.jsondartserializable.core.json.constants.JsonAnalysisTableKeys;
 import pers.chaos.jsondartserializable.core.json.enums.DartDataTypeEnum;
+import pers.chaos.jsondartserializable.core.json.enums.JsonTypeEnum;
 import pers.chaos.jsondartserializable.windows.components.DartDataTypeComboBox;
 import pers.chaos.jsondartserializable.windows.components.DartPropertyRequiredCheckBox;
 
@@ -157,12 +158,19 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
     }
 
     private boolean tableCellEditableRuleVerify(final Object[][] tableModelData, int row, int column) {
-        // any false result will be set editable records
+        // all json field name can not be edited
         if (column == JsonAnalysisTableKeys.MappingModelTableReflectable.JSON_FIELD_NAME.getTableColumnIndex()) {
             this.editableCellRecords[row][column] = false;
             return false;
         }
 
+        // all analysis json type can not be edited
+        if (column == JsonAnalysisTableKeys.MappingModelTableReflectable.JSON_DATA_TYPE.getTableColumnIndex()) {
+            this.editableCellRecords[row][column] = false;
+            return false;
+        }
+
+        // dart object type(object array) can not edit dart basis type
         if (column == JsonAnalysisTableKeys.MappingModelTableReflectable.DART_DATA_TYPE.getTableColumnIndex()) {
             DartDataTypeEnum dartDataTypeEnum = (DartDataTypeEnum) tableModelData[row][column];
             if (DartDataTypeEnum.OBJECT == dartDataTypeEnum) {
@@ -171,6 +179,7 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
             }
         }
 
+        // dart basis type can not edit dart file name
         if (column == JsonAnalysisTableKeys.MappingModelTableReflectable.DART_FILE_NAME.getTableColumnIndex()) {
             DartDataTypeEnum dartDataTypeEnum = (DartDataTypeEnum) tableModelData[row][JsonAnalysisTableKeys.MappingModelTableReflectable.DART_DATA_TYPE.getTableColumnIndex()];
             if (DartDataTypeEnum.OBJECT != dartDataTypeEnum) {
@@ -179,9 +188,19 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
             }
         }
 
+        // only dart type is object type can edit class name
         if (column == JsonAnalysisTableKeys.MappingModelTableReflectable.INNER_OBJECT_CLASS_NAME.getTableColumnIndex()) {
             DartDataTypeEnum dartDataTypeEnum = (DartDataTypeEnum) tableModelData[row][JsonAnalysisTableKeys.MappingModelTableReflectable.DART_DATA_TYPE.getTableColumnIndex()];
             if (DartDataTypeEnum.OBJECT != dartDataTypeEnum) {
+                this.editableCellRecords[row][column] = false;
+                return false;
+            }
+        }
+
+        // can not edit default value if not dart basis type
+        if (column == JsonAnalysisTableKeys.MappingModelTableReflectable.DART_PROPERTY_DEFAULT_VALUE.getTableColumnIndex()) {
+            JsonTypeEnum jsonTypeEnum = (JsonTypeEnum) tableModelData[row][JsonAnalysisTableKeys.MappingModelTableReflectable.JSON_DATA_TYPE.getTableColumnIndex()];
+            if (JsonTypeEnum.BASIS_TYPE != jsonTypeEnum) {
                 this.editableCellRecords[row][column] = false;
                 return false;
             }

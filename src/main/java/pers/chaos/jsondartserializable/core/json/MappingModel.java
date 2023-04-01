@@ -487,6 +487,9 @@ public class MappingModel {
         this.className = className;
     }
 
+    public void setJsonTypeEnum(JsonTypeEnum jsonTypeEnum) {
+        this.jsonTypeEnum = jsonTypeEnum;
+    }
 
     @Override
     public String toString() {

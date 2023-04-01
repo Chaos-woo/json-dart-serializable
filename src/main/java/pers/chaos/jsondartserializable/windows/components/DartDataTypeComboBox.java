@@ -38,7 +38,9 @@ public interface DartDataTypeComboBox {
             JComboBox<DartDataTypeEnum> dartDataTypeEnumComboBox = new ComboBox<>();
 
             for (DartDataTypeEnum typeEnum : DartDataTypeEnum.values()) {
-                dartDataTypeEnumComboBox.addItem(typeEnum);
+                if (DartDataTypeEnum.OBJECT != typeEnum) {
+                    dartDataTypeEnumComboBox.addItem(typeEnum);
+                }
             }
 
             dartDataTypeEnumComboBox.setSelectedItem(this.dartDataTypeEnum);

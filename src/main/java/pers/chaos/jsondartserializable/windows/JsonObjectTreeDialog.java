@@ -83,8 +83,14 @@ public class JsonObjectTreeDialog extends JDialog {
         AnalysisJsonDartMappingTableDialog dialog = new AnalysisJsonDartMappingTableDialog(effectiveModel);
         dialog.pack();
         dialog.setTitle("『OBJECT』's Mapping Model Table");
-        dialog.setLocation(this.getLocation());
-        dialog.setMinimumSize(new Dimension(1200, 500));
+        Point location = this.getLocation();
+        double movingX = location.getX() - ((double) Consts.AnalysisJsonDialog.WIDTH_WINDOW / 4);
+        if (movingX < 0) {
+            dialog.setLocation(location);
+        } else {
+            dialog.setLocation((int) movingX, (int) location.getLocation().getY());
+        }
+        dialog.setMinimumSize(new Dimension(Consts.AnalysisJsonDialog.WIDTH_WINDOW, Consts.AnalysisJsonDialog.HEIGHT_WINDOW));
         dialog.setVisible(true);
     }
 

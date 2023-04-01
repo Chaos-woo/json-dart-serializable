@@ -10,7 +10,8 @@ public interface JsonAnalysisTableKeys {
         DART_PROPERTY_DEFAULT_VALUE("dartPropertyDefaultValue", 4, "Default value"),
         DART_FILE_NAME("dartFileName", 5, "Dart file name"),
         INNER_OBJECT_CLASS_NAME("className", 6, "Dart class name"),
-        DESCRIPTION("description", 7, "Field note"),
+        JSON_DATA_TYPE("jsonTypeEnum", 7, "JSON type"),
+        DESCRIPTION("description", 8, "Field note"),
 
         ;
 
@@ -38,7 +39,7 @@ public interface JsonAnalysisTableKeys {
     }
 
     interface ObjectPropertyTable {
-        String TABLE_TITLE_TEMPLATE = "Confirm 『%s』 JSON object analysis result";
+        String TABLE_TITLE_TEMPLATE = "Confirm 『%s』 JSON string analysis result";
 
         static String formatTableTitle(String object) {
             return String.format(TABLE_TITLE_TEMPLATE, object);
