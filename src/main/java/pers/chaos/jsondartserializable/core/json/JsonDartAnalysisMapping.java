@@ -7,7 +7,6 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 import pers.chaos.jsondartserializable.core.json.enums.JsonTypeEnum;
 import pers.chaos.jsondartserializable.utils.DartClassFileUtils;
@@ -47,13 +46,47 @@ public class JsonDartAnalysisMapping {
     }
 
     public void generated(VirtualFile parent, Project project) {
+
         // set default description of all mapping model
         this.innerMappingModelRebuildDescription(rootMappingModel.getInnerMappingModels());
+
+        // OBJECT array's first child class name rebuild
+        this.objectArrayInnerFirstMappingModelRebuildClassNameAndDartFileName(rootMappingModel);
+
         // check whether exist dart file of the same name
         final Set<String> existDartFileNames = new HashSet<>();
         this.checkAllMappingModelExistSameNameDartFileName(existDartFileNames, rootMappingModel);
+
         // start generate file by root mapping model
         rootMappingModel.cycleGeneratedDartFile(parent, project);
+    }
+
+    private void objectArrayInnerFirstMappingModelRebuildClassNameAndDartFileName(MappingModel mappingModel) {
+        if (mappingModel.isBasisJsonType()) {
+            return;
+        }
+
+        if (JsonTypeEnum.OBJECT == mappingModel.getJsonTypeEnum()
+            && CollectionUtils.isNotEmpty(mappingModel.getInnerMappingModels())) {
+
+            for (MappingModel innerMappingModel : mappingModel.getInnerMappingModels()) {
+                objectArrayInnerFirstMappingModelRebuildClassNameAndDartFileName(innerMappingModel);
+            }
+        }
+
+        if (JsonTypeEnum.OBJECT_ARRAY == mappingModel.getJsonTypeEnum()
+                && CollectionUtils.isNotEmpty(mappingModel.getInnerMappingModels())) {
+
+            MappingModel firstChild = mappingModel.getInnerMappingModels().get(0);
+            firstChild.setClassName(mappingModel.getClassName());
+            firstChild.setDartFileName(mappingModel.getDartFileName());
+
+            if (CollectionUtils.isNotEmpty(firstChild.getInnerMappingModels())) {
+                for (MappingModel innerMappingModel : firstChild.getInnerMappingModels()) {
+                    objectArrayInnerFirstMappingModelRebuildClassNameAndDartFileName(innerMappingModel);
+                }
+            }
+        }
     }
 
     private void checkAllMappingModelExistSameNameDartFileName(final Set<String> existDartFileNames, MappingModel mappingModel) {
