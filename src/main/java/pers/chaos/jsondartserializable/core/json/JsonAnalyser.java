@@ -3,6 +3,7 @@ package pers.chaos.jsondartserializable.core.json;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import pers.chaos.jsondartserializable.windows.UserAdvanceConfiguration;
 
 public final class JsonAnalyser {
     private static final ObjectMapper ANALYSER = new ObjectMapper();
@@ -13,7 +14,9 @@ public final class JsonAnalyser {
         return PRETTY_PRINTER.writerWithDefaultPrettyPrinter().writeValueAsString(node);
     }
 
-    public static JsonDartAnalysisMapping analysis(String className, String jsonString) throws JsonProcessingException {
+    public static JsonDartAnalysisMapping analysis(String className, String jsonString,
+                                                   UserAdvanceConfiguration userAdvanceConfiguration)
+            throws JsonProcessingException {
         JsonNode node = ANALYSER.readTree(jsonString);
 
         if (!node.isObject()) {
@@ -21,6 +24,6 @@ public final class JsonAnalyser {
         }
 
         // start with a JsonDartAnalysisMapping holder
-        return new JsonDartAnalysisMapping(className, node);
+        return new JsonDartAnalysisMapping(className, node, userAdvanceConfiguration);
     }
 }

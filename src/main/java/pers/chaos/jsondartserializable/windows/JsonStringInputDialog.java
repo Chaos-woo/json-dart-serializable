@@ -41,6 +41,7 @@ public class JsonStringInputDialog extends JDialog {
     private JButton buttonPreviewEdit;
     private JButton buttonClearEdited;
     private JTextField textFieldClassDescription;
+    private JCheckBox realtimeDefaultValCheckBox;
 
     public JsonStringInputDialog(AnActionEvent anActionEvent) {
         this.anActionEvent = anActionEvent;
@@ -157,9 +158,12 @@ public class JsonStringInputDialog extends JDialog {
             showAnalysisErrorTip("Empty class name or JSON string");
         }
 
+        UserAdvanceConfiguration userAdvanceConfiguration = new UserAdvanceConfiguration();
+        userAdvanceConfiguration.setEnableRealtimeJsonDefaultValueAnalysis(realtimeDefaultValCheckBox.isSelected());
+
         try {
             // check and analysis mapping model
-            this.analysisMapping = JsonAnalyser.analysis(userInputRootClassName, jsonString);
+            this.analysisMapping = JsonAnalyser.analysis(userInputRootClassName, jsonString, userAdvanceConfiguration);
         } catch (Exception e) {
             System.out.println(ExceptionUtils.getStackTrace(e));
             showJsonFormatErrorTip();

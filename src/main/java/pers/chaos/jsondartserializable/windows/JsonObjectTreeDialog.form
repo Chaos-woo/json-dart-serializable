@@ -63,7 +63,9 @@
             <children>
               <component id="6b854" class="javax.swing.JTree" binding="jsonTree">
                 <constraints/>
-                <properties/>
+                <properties>
+                  <toolTipText value="Double click to edit it"/>
+                </properties>
               </component>
             </children>
           </scrollpane>

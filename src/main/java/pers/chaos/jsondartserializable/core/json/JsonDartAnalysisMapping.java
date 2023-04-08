@@ -8,8 +8,10 @@ import com.intellij.openapi.vfs.VirtualFile;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import pers.chaos.jsondartserializable.core.json.enums.DartDataTypeEnum;
 import pers.chaos.jsondartserializable.core.json.enums.JsonTypeEnum;
 import pers.chaos.jsondartserializable.utils.DartClassFileUtils;
+import pers.chaos.jsondartserializable.windows.UserAdvanceConfiguration;
 
 import java.util.HashSet;
 import java.util.List;
@@ -21,9 +23,13 @@ public class JsonDartAnalysisMapping {
 
     private final MappingModel rootMappingModel;
 
-    public JsonDartAnalysisMapping(String className, JsonNode node) {
+    private final UserAdvanceConfiguration userAdvanceConfiguration;
+
+    public JsonDartAnalysisMapping(String className, JsonNode node, UserAdvanceConfiguration userAdvanceConfiguration) {
         this.className = DartClassFileUtils.getDartClassName(className);
         this.dartFileName = DartClassFileUtils.getDartFileNameByClassName(className);
+
+        this.userAdvanceConfiguration = userAdvanceConfiguration;
 
         // init root mapping model
         rootMappingModel = new MappingModel(className, node, true);
@@ -32,16 +38,54 @@ public class JsonDartAnalysisMapping {
         // MappingModel constructor must judge `isRoot` and
         // currently only support root mapping model is
         // an OBJECT
-        analysisMapping(rootMappingModel, node);
+        analysisRootMappingModelNode(rootMappingModel, node);
+
+        if (userAdvanceConfiguration.isEnableRealtimeJsonDefaultValueAnalysis()) {
+            // enable realtime json default value option,
+            // will set default value for all dart basis type
+            // according to JSON string node value
+            processRealtimeJsonDefaultValue(rootMappingModel);
+        }
     }
 
-    private void analysisMapping(MappingModel mappingModel, JsonNode node) {
+    private void processRealtimeJsonDefaultValue(MappingModel mappingModel) {
+        // set default value for all dart basis type
+        // according to JSON string node value
+        if (DartDataTypeEnum.OBJECT != mappingModel.getDartDataTypeEnum()) {
+            JsonNode node = mappingModel.getNode();
+            Object defaultValue = null;
+            if (node.isBoolean()) {
+                defaultValue = node.asBoolean();
+            } else if (node.isTextual()) {
+                defaultValue = node.asText();
+            } else if (node.isInt()) {
+                defaultValue = node.asInt();
+            } else if (node.isLong()) {
+                defaultValue = node.asLong();
+            } else if (node.isBigInteger()) {
+                defaultValue = node.bigIntegerValue();
+            } else if (node.isDouble() || node.isFloat()) {
+                defaultValue = node.asDouble();
+            } else if (node.isFloat()) {
+                defaultValue = node.floatValue();
+            }
+            mappingModel.setDartPropertyDefaultValue(defaultValue);
+        }
+
+        if (CollectionUtils.isNotEmpty(mappingModel.getInnerMappingModels())) {
+            for (MappingModel innerMappingModel : mappingModel.getInnerMappingModels()) {
+                processRealtimeJsonDefaultValue(innerMappingModel);
+            }
+        }
+    }
+
+    private void analysisRootMappingModelNode(MappingModel rootMappingModel, JsonNode node) {
         // process the fields under the root mapping model in turn
         node.fieldNames().forEachRemaining(fieldName -> {
             JsonNode childNode = node.get(fieldName);
             MappingModel mm = new MappingModel(fieldName, childNode, false);
 
-            mappingModel.getInnerMappingModels().add(mm);
+            rootMappingModel.getInnerMappingModels().add(mm);
         });
     }
 
@@ -126,6 +170,8 @@ public class JsonDartAnalysisMapping {
     public MappingModel getRootMappingModel() {
         return rootMappingModel;
     }
+
+
 
     @Override
     public String toString() {
