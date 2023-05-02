@@ -42,6 +42,7 @@ public class JsonStringInputDialog extends JDialog {
     private JButton buttonClearEdited;
     private JTextField textFieldClassDescription;
     private JCheckBox realtimeDefaultValCheckBox;
+    private JCheckBox allClassIntoSingleCheckBox;
 
     public JsonStringInputDialog(AnActionEvent anActionEvent) {
         this.anActionEvent = anActionEvent;
@@ -50,7 +51,7 @@ public class JsonStringInputDialog extends JDialog {
         setModal(true);
         getRootPane().setDefaultButton(buttonOK);
 
-        buttonOK.addActionListener(e -> onOK());
+        buttonOK.addActionListener(e -> onGenerate());
 
         buttonCancel.addActionListener(e -> onCancel());
 
@@ -160,6 +161,7 @@ public class JsonStringInputDialog extends JDialog {
 
         UserAdvanceConfiguration userAdvanceConfiguration = new UserAdvanceConfiguration();
         userAdvanceConfiguration.setEnableRealtimeJsonDefaultValueAnalysis(realtimeDefaultValCheckBox.isSelected());
+        userAdvanceConfiguration.setEnableAllClassGeneratedIntoSingleFile(allClassIntoSingleCheckBox.isSelected());
 
         try {
             // check and analysis mapping model
@@ -201,7 +203,7 @@ public class JsonStringInputDialog extends JDialog {
         labelError.setText(null);
     }
 
-    private void onOK() {
+    private void onGenerate() {
         if (Objects.isNull(this.analysisMapping)) {
             boolean analysisRet = inputJsonStringAnalysis();
             if (!analysisRet) return;

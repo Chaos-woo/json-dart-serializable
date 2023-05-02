@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "pers.chaos"
-version = "0.8"
+version = "0.9"
 
 repositories {
     mavenCentral()
@@ -13,7 +13,7 @@ repositories {
 dependencies {
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
     implementation("com.fasterxml.jackson.core:jackson-core:2.14.2")
-// https://mvnrepository.com/artifact/com.google.guava/guava
+    // https://mvnrepository.com/artifact/com.google.guava/guava
     implementation("com.google.guava:guava:31.1-jre")
 }
 

@@ -101,8 +101,13 @@ public class JsonDartAnalysisMapping {
         final Set<String> existDartFileNames = new HashSet<>();
         this.checkAllMappingModelExistSameNameDartFileName(existDartFileNames, rootMappingModel);
 
-        // start generate file by root mapping model
-        rootMappingModel.cycleGeneratedDartFile(parent, project);
+        if (userAdvanceConfiguration.isEnableAllClassGeneratedIntoSingleFile()) {
+            // start generate all classes into single file by root mapping model
+            rootMappingModel.generateSingleDartFileWithAllClasses(parent, project);
+        } else {
+            // start generate file by root mapping model
+            rootMappingModel.generateMultiDartFilesRecursively(parent, project);
+        }
     }
 
     private void objectArrayInnerFirstMappingModelRebuildClassNameAndDartFileName(MappingModel mappingModel) {
