@@ -1,4 +1,4 @@
-package pers.chaos.jsondartserializable.core.json.constants;
+package pers.chaos.jsondartserializable.core.constants;
 
 public interface JsonAnalysisTableKeys {
 

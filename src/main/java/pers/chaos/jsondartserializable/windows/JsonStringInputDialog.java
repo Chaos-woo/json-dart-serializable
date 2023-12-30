@@ -12,7 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import pers.chaos.jsondartserializable.core.json.JsonAnalyser;
 import pers.chaos.jsondartserializable.core.json.JsonDartAnalysisMapping;
-import pers.chaos.jsondartserializable.core.json.MappingModel;
+import pers.chaos.jsondartserializable.core.json.MappingModelNode;
 import pers.chaos.jsondartserializable.utils.DartClassFileUtils;
 import pers.chaos.jsondartserializable.utils.NotificationUtils;
 
@@ -86,10 +86,10 @@ public class JsonStringInputDialog extends JDialog {
                 if (Objects.nonNull(analysisMapping)) {
                     JTextField textField = (JTextField) e.getSource();
                     String newRootClassName = textField.getText();
-                    MappingModel rootMappingModel = analysisMapping.getRootMappingModel();
-                    rootMappingModel.setClassName(newRootClassName);
-                    rootMappingModel.setJsonFieldName(newRootClassName);
-                    rootMappingModel.setDartFileName(DartClassFileUtils.getDartFileNameByClassName(newRootClassName));
+                    MappingModelNode rootMappingModelNode = analysisMapping.getRootMappingModel();
+                    rootMappingModelNode.setClassName(newRootClassName);
+                    rootMappingModelNode.setJsonFieldName(newRootClassName);
+                    rootMappingModelNode.setDartFileName(DartClassFileUtils.getDartFileNameByClassName(newRootClassName));
                 }
             }
             @Override
@@ -121,8 +121,8 @@ public class JsonStringInputDialog extends JDialog {
             if (!analysisRet) return;
         }
 
-        boolean isRootObjectNodeHasNoChildNodes = this.analysisMapping.getRootMappingModel().getInnerMappingModels().stream()
-                .allMatch(MappingModel::isBasisJsonType);
+        boolean isRootObjectNodeHasNoChildNodes = this.analysisMapping.getRootMappingModel().getChildModelNodes().stream()
+                .allMatch(MappingModelNode::isBasisJsonType);
 
         if (isRootObjectNodeHasNoChildNodes) {
             AnalysisJsonDartMappingTableDialog dialog =
@@ -210,9 +210,9 @@ public class JsonStringInputDialog extends JDialog {
         }
 
         String classDesc = textFieldClassDescription.getText();
-        MappingModel rootMappingModel = this.analysisMapping.getRootMappingModel();
+        MappingModelNode rootMappingModelNode = this.analysisMapping.getRootMappingModel();
         if (StringUtils.isNoneBlank(classDesc)) {
-            rootMappingModel.setDescription(classDesc);
+            rootMappingModelNode.setDescription(classDesc);
         }
 
         Project project = anActionEvent.getProject();
@@ -223,12 +223,12 @@ public class JsonStringInputDialog extends JDialog {
         // get user current focus virtual file's handle
         VirtualFile parent = anActionEvent.getData(CommonDataKeys.VIRTUAL_FILE);
         if (parent != null && parent.isDirectory()) {
-            VirtualFile child = parent.findChild(rootMappingModel.getDartFileName() + ".dart");
+            VirtualFile child = parent.findChild(rootMappingModelNode.getDartFileName() + ".dart");
             if (Objects.nonNull(child)) {
                 Messages.showErrorDialog(
-                        rootMappingModel.getDartFileName()
+                        rootMappingModelNode.getDartFileName()
                                 + ".dart has exist, please modify root class name 『 "
-                                + rootMappingModel.getClassName() + " 』",
+                                + rootMappingModelNode.getClassName() + " 』",
                         "Generated Error");
                 return;
             }
@@ -239,7 +239,7 @@ public class JsonStringInputDialog extends JDialog {
             outputDartClassModelFile(parent, project, this.analysisMapping);
         } catch (IOException e) {
             showAnalysisErrorTip("Generate dart file fail");
-            NotificationUtils.showNotification(this.anActionEvent.getProject(), "Generated error", "Check it", NotificationType.WARNING);
+            NotificationUtils.show(this.anActionEvent.getProject(), "Generated error", "Check it", NotificationType.WARNING);
             return;
         }
         dispose();
@@ -252,7 +252,7 @@ public class JsonStringInputDialog extends JDialog {
 
             // refresh  IntelliJ file system
             parent.refresh(false, true);
-            NotificationUtils.showNotification(project,
+            NotificationUtils.show(project,
                     "Convert success",
                     analysisMapping.getRootMappingModel().getDartFileName() + ".dart generated",
                     NotificationType.INFORMATION);

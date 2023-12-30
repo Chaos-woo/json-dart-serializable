@@ -23,7 +23,6 @@ public final class JsonAnalyser {
             throw new RuntimeException("Only support Object JSON tree analysis");
         }
 
-        // start with a JsonDartAnalysisMapping holder
         return new JsonDartAnalysisMapping(className, node, userAdvanceConfiguration);
     }
 }

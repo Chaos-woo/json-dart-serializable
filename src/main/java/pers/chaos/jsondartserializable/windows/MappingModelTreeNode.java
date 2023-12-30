@@ -1,16 +1,16 @@
 package pers.chaos.jsondartserializable.windows;
 
-import pers.chaos.jsondartserializable.core.json.MappingModel;
+import pers.chaos.jsondartserializable.core.json.MappingModelNode;
 
 public class MappingModelTreeNode {
 
-    private final MappingModel model;
+    private final MappingModelNode model;
 
-    public MappingModelTreeNode(MappingModel model) {
+    public MappingModelTreeNode(MappingModelNode model) {
         this.model = model;
     }
 
-    public MappingModel getModel() {
+    public MappingModelNode getModel() {
         return model;
     }
 

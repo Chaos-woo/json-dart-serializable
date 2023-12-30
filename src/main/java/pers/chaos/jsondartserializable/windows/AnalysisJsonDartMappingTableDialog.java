@@ -1,9 +1,9 @@
 package pers.chaos.jsondartserializable.windows;
 
-import pers.chaos.jsondartserializable.core.json.MappingModel;
-import pers.chaos.jsondartserializable.core.json.constants.JsonAnalysisTableKeys;
-import pers.chaos.jsondartserializable.core.json.enums.DartDataTypeEnum;
-import pers.chaos.jsondartserializable.core.json.enums.JsonTypeEnum;
+import pers.chaos.jsondartserializable.core.json.MappingModelNode;
+import pers.chaos.jsondartserializable.core.constants.JsonAnalysisTableKeys;
+import pers.chaos.jsondartserializable.core.enums.DartDataTypeEnum;
+import pers.chaos.jsondartserializable.core.enums.JsonTypeEnum;
 import pers.chaos.jsondartserializable.windows.components.DartDataTypeComboBox;
 import pers.chaos.jsondartserializable.windows.components.DartPropertyRequiredCheckBox;
 
@@ -21,7 +21,7 @@ import java.util.Comparator;
 import java.util.List;
 
 public class AnalysisJsonDartMappingTableDialog extends JDialog {
-    private final MappingModel mappingModel;
+    private final MappingModelNode mappingModelNode;
     private final JsonAnalysisTableKeys.MappingModelTableReflectable[] tablesColumnReflectable;
 
     private JPanel contentPane;
@@ -31,8 +31,8 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
 
     private boolean[][] editableCellRecords;
 
-    public AnalysisJsonDartMappingTableDialog(MappingModel mappingModel) {
-        this.mappingModel = mappingModel;
+    public AnalysisJsonDartMappingTableDialog(MappingModelNode mappingModelNode) {
+        this.mappingModelNode = mappingModelNode;
 
         setContentPane(contentPane);
         setModal(true);
@@ -96,17 +96,17 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
             tableModel.addRow(data);
         }
 
-        labelClassTitle.setText(JsonAnalysisTableKeys.ObjectPropertyTable.formatTableTitle(this.mappingModel.getClassName()));
+        labelClassTitle.setText(JsonAnalysisTableKeys.ObjectPropertyTable.formatTableTitle(this.mappingModelNode.getClassName()));
     }
 
     private Object[][] getMappingModelTableModelData(JsonAnalysisTableKeys.MappingModelTableReflectable[] tablesColumnReflectable) {
-        List<MappingModel> innerMappingModels = this.mappingModel.getInnerMappingModels();
-        Object[][] tableData = new Object[innerMappingModels.size()][tablesColumnReflectable.length];
+        List<MappingModelNode> innerMappingModelNodes = this.mappingModelNode.getChildModelNodes();
+        Object[][] tableData = new Object[innerMappingModelNodes.size()][tablesColumnReflectable.length];
 
         // initial editable cell records
-        this.editableCellRecords = new boolean[innerMappingModels.size()][tablesColumnReflectable.length];
-        for (int i = 0; i < innerMappingModels.size(); i++) {
-            MappingModel innerProperty = innerMappingModels.get(i);
+        this.editableCellRecords = new boolean[innerMappingModelNodes.size()][tablesColumnReflectable.length];
+        for (int i = 0; i < innerMappingModelNodes.size(); i++) {
+            MappingModelNode innerProperty = innerMappingModelNodes.get(i);
             for (int j = 0; j < tablesColumnReflectable.length; j++) {
                 // firstly all cell editable
                 this.editableCellRecords[i][j] = true;
@@ -131,10 +131,10 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
     }
 
     private void onConfirm() {
-        // table data convert to MappingModel
-        List<MappingModel> innerMappingModels = this.mappingModel.getInnerMappingModels();
-        for (int i = 0; i < innerMappingModels.size(); i++) {
-            MappingModel innerProperty = innerMappingModels.get(i);
+        // table data convert to MappingModelNode
+        List<MappingModelNode> innerMappingModelNodes = this.mappingModelNode.getChildModelNodes();
+        for (int i = 0; i < innerMappingModelNodes.size(); i++) {
+            MappingModelNode innerProperty = innerMappingModelNodes.get(i);
             for (int j = 0; j < this.tablesColumnReflectable.length; j++) {
                 if (!this.editableCellRecords[i][j]) {
                     continue;

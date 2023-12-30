@@ -2,8 +2,8 @@ package pers.chaos.jsondartserializable.windows;
 
 import org.apache.commons.collections.CollectionUtils;
 import pers.chaos.jsondartserializable.core.json.JsonDartAnalysisMapping;
-import pers.chaos.jsondartserializable.core.json.MappingModel;
-import pers.chaos.jsondartserializable.core.json.enums.JsonTypeEnum;
+import pers.chaos.jsondartserializable.core.json.MappingModelNode;
+import pers.chaos.jsondartserializable.core.enums.JsonTypeEnum;
 import pers.chaos.jsondartserializable.windows.components.TreeNodeCellRenderer;
 
 import javax.swing.*;
@@ -74,10 +74,10 @@ public class JsonObjectTreeDialog extends JDialog {
         });
     }
 
-    private void confirmObjectPropertiesInNewDialog(MappingModel mappingModel) {
-        MappingModel effectiveModel = mappingModel;
-        if (JsonTypeEnum.OBJECT_ARRAY == mappingModel.getJsonTypeEnum()) {
-            effectiveModel = mappingModel.getInnerMappingModels().get(0);
+    private void confirmObjectPropertiesInNewDialog(MappingModelNode mappingModelNode) {
+        MappingModelNode effectiveModel = mappingModelNode;
+        if (JsonTypeEnum.OBJECT_ARRAY == mappingModelNode.getJsonTypeEnum()) {
+            effectiveModel = mappingModelNode.getChildModelNodes().get(0);
         }
 
         AnalysisJsonDartMappingTableDialog dialog = new AnalysisJsonDartMappingTableDialog(effectiveModel);
@@ -99,17 +99,17 @@ public class JsonObjectTreeDialog extends JDialog {
         MappingModelTreeNode mappingModelTreeNode = new MappingModelTreeNode(this.analysisMapping.getRootMappingModel());
         root.setUserObject(mappingModelTreeNode);
 
-        recursiveBuildJsonChildTreeNode(root, this.analysisMapping.getRootMappingModel().getInnerMappingModels());
+        recursiveBuildJsonChildTreeNode(root, this.analysisMapping.getRootMappingModel().getChildModelNodes());
 
         return root;
     }
 
-    private void recursiveBuildJsonChildTreeNode(DefaultMutableTreeNode parent, List<MappingModel> childMappingModels) {
-        if (CollectionUtils.isEmpty(childMappingModels)) {
+    private void recursiveBuildJsonChildTreeNode(DefaultMutableTreeNode parent, List<MappingModelNode> childMappingModelNodes) {
+        if (CollectionUtils.isEmpty(childMappingModelNodes)) {
             return;
         }
 
-        List<MappingModel> objectChildModels = childMappingModels.stream()
+        List<MappingModelNode> objectChildModels = childMappingModelNodes.stream()
                 .filter(model -> !model.isBasisJsonType())
                 .collect(Collectors.toList());
 
@@ -117,13 +117,13 @@ public class JsonObjectTreeDialog extends JDialog {
             return;
         }
 
-        for (MappingModel objectChildModel : objectChildModels) {
+        for (MappingModelNode objectChildModel : objectChildModels) {
             DefaultMutableTreeNode node = new DefaultMutableTreeNode();
             MappingModelTreeNode mappingModelTreeNode = new MappingModelTreeNode(objectChildModel);
             node.setUserObject(mappingModelTreeNode);
 
             parent.add(node);
-            recursiveBuildJsonChildTreeNode(node, objectChildModel.getInnerMappingModels());
+            recursiveBuildJsonChildTreeNode(node, objectChildModel.getChildModelNodes());
         }
     }
 

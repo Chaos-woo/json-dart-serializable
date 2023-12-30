@@ -1,7 +1,7 @@
 package pers.chaos.jsondartserializable.windows.components;
 
 import com.intellij.openapi.ui.ComboBox;
-import pers.chaos.jsondartserializable.core.json.enums.DartDataTypeEnum;
+import pers.chaos.jsondartserializable.core.enums.DartDataTypeEnum;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;

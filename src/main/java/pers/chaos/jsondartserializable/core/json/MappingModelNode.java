@@ -7,69 +7,72 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.time.DateUtils;
 import org.apache.commons.lang3.RandomStringUtils;
-import pers.chaos.jsondartserializable.core.json.constants.GeneratedTemplate;
-import pers.chaos.jsondartserializable.core.json.enums.DartDataTypeEnum;
-import pers.chaos.jsondartserializable.core.json.enums.JsonTypeEnum;
+import pers.chaos.jsondartserializable.core.constants.GeneratedTemplate;
+import pers.chaos.jsondartserializable.core.enums.DartDataTypeEnum;
+import pers.chaos.jsondartserializable.core.enums.JsonTypeEnum;
 import pers.chaos.jsondartserializable.utils.DartClassFileUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class MappingModel {
-    // original JSON field name
+public class MappingModelNode {
+    // 原始JSON字段名
     private String jsonFieldName;
-    // generated dart property name
+    // 生成的dart字段名
     private String dartPropertyName;
-    // dart basis data type, e.g. String or int
+    // dart基本数据类型，例如， String，int
     private DartDataTypeEnum dartDataTypeEnum = DartDataTypeEnum.OBJECT;
-    // current model mapping property is required
+    // 当前dart字段是否是必填，必填类型在dart空安全版本初始化函数中需要使用required关键字
     private boolean dartPropertyRequired = true;
-    // current model mapping property's default value,
-    // but only support set dart basis data type
+    // 当前dart属性默认值
     private Object dartPropertyDefaultValue;
-    // node description, generated will be set default value of json field name
+    // 生成后dart属性描述，用于注释描述字段的作用
     private String description;
 
 
-    // will be set when current model is OBJECT or OBJECT in JSON array
+    // 当前结点类型为Object或数组中的Object时，需要生成对应的dart文件名
     private String dartFileName;
-    // will be set when current model is OBJECT or OBJECT in JSON array
+    // 当前结点类型为Object或数组中的Object时，需要生成对应的dart类名
     private String className;
 
-
+    // JSON结点
     private final JsonNode node;
+    // 自定义分析后的JSON类型枚举
     private JsonTypeEnum jsonTypeEnum;
+    // 当前结点是否是根节点
     private final boolean isRoot;
     // mark whether generated need using @JsonKey annotation convert original json filed name
     private boolean markJsonKeyAnno = false;
-    // inner mapping models in JSON tree
-    private final List<MappingModel> innerMappingModels;
+    // 当前结点下的子节点
+    private final List<MappingModelNode> childModelNodes;
 
-    public MappingModel(String jsonFieldName, JsonNode node, boolean isRoot) {
+    public MappingModelNode(String jsonFieldName, JsonNode node, boolean isRoot) {
         this.jsonFieldName = jsonFieldName;
         this.node = node;
-        this.innerMappingModels = new ArrayList<>();
+        this.childModelNodes = new ArrayList<>();
         this.isRoot = isRoot;
 
         /**
-         * mapping custom json type enum
+         * 映射为自定义Json类型枚举
          * @see JsonTypeEnum
          */
-        this.mappingCustomJsonTypeEnum();
+        mappingCustomJsonTypeEnum();
         /**
-         * mapping custom dart basis data type enum
+         * 映射为自定义Dart数据类型枚举
          * @see DartDataTypeEnum
          */
-        this.mappingCustomDartTypeEnum();
-        // process dart file name, class name and class file name
-        this.mappingCustomDartClassName();
-        // process dart property name
-        this.mappingCustomDartPropertyName();
+        mappingCustomDartTypeEnum();
+        // 处理Dart文件和Dart类名
+        mappingCustomDartClassName();
+        // 处理Dart类中的属性名
+        mappingCustomDartPropertyName();
     }
 
     public boolean isBasisJsonType() {
@@ -83,8 +86,8 @@ public class MappingModel {
             if (!isRoot) {
                 node.fieldNames().forEachRemaining(fieldName -> {
                     JsonNode childNode = node.get(fieldName);
-                    MappingModel mm = new MappingModel(fieldName, childNode, false);
-                    this.innerMappingModels.add(mm);
+                    MappingModelNode mm = new MappingModelNode(fieldName, childNode, false);
+                    childModelNodes.add(mm);
                 });
             }
 
@@ -93,15 +96,14 @@ public class MappingModel {
                 JsonNode firstChildNode = node.get(0);
                 if (firstChildNode.isObject()) {
                     jsonTypeEnum = JsonTypeEnum.OBJECT_ARRAY;
-                    // OBJECT ARRAY's json field name will be used to generated
-                    // its inner object's class name, but the json field name will
-                    // be used to set this OBJECT ARRAY's dart property name
-                    this.innerMappingModels.add(new MappingModel(this.jsonFieldName, firstChildNode, false));
+                    // JSON中对象数组字段名将被用于其生成类的dart类名和dart文件名，
+                    // 该JSON的对象数组字段名将被用于其父节点的属性名
+                    childModelNodes.add(new MappingModelNode(this.jsonFieldName, firstChildNode, false));
                 } else if (firstChildNode.isArray()) {
                     throw new RuntimeException("Not support analysis array nesting");
                 } else {
                     jsonTypeEnum = JsonTypeEnum.BASIS_TYPE_ARRAY;
-                    this.innerMappingModels.add(new MappingModel("NORMAL_FIELD_ARRAY", firstChildNode, false));
+                    childModelNodes.add(new MappingModelNode("NORMAL_FIELD_ARRAY", firstChildNode, false));
                 }
             }
 
@@ -124,7 +126,7 @@ public class MappingModel {
     public void mappingCustomDartTypeEnum() {
         if (isBasisJsonType()) {
             if (jsonTypeEnum == JsonTypeEnum.BASIS_TYPE) {
-                this.dartDataTypeEnum = this.getCustomDartDataType(node);
+                this.dartDataTypeEnum = getCustomDartDataType(node);
             } else if (jsonTypeEnum == JsonTypeEnum.BASIS_TYPE_ARRAY) {
                 if (!node.isEmpty()) {
                     JsonNode firstChildNode = node.get(0);
@@ -133,12 +135,10 @@ public class MappingModel {
                     } else if (firstChildNode.isArray()) {
                         throw new RuntimeException("Not support analysis array nesting");
                     } else {
-                        this.dartDataTypeEnum = this.getCustomDartDataType(firstChildNode);
+                        this.dartDataTypeEnum = getCustomDartDataType(firstChildNode);
                     }
                 } else {
-                    // original JSON string array is empty,
-                    // can not judge dart type, so, default set
-                    // it is String array
+                    // 原始JSON字符串是个空数组，则默认将数组的基本类型设置为字符串数组
                     this.dartDataTypeEnum = DartDataTypeEnum.STRING;
                 }
             }
@@ -157,7 +157,8 @@ public class MappingModel {
         if (node.isBoolean()) {
             dartDataTypeEnum = DartDataTypeEnum.BOOLEAN;
         } else if (node.isTextual()) {
-            dartDataTypeEnum = DartDataTypeEnum.STRING;
+            boolean isDateString = tryParseTextDate(node.asText());
+            dartDataTypeEnum = isDateString ? DartDataTypeEnum.DATETIME : DartDataTypeEnum.STRING;
         } else if (node.isInt() || node.isLong() || node.isBigInteger()) {
             dartDataTypeEnum = DartDataTypeEnum.INT;
         } else if (node.isDouble() || node.isFloat()) {
@@ -166,57 +167,73 @@ public class MappingModel {
         return dartDataTypeEnum;
     }
 
+    final static String[] DATE_FORMATS = new String[]{
+            "HH:mm:ss",
+            "hh:mm:ss a",
+            "YYYY-MM-DD HH:mm:ss",
+            "YYYY-MM-DD HH:mm:ss Z",
+            "YYYY年MM月DD日",
+            "MM/DD/YYYY",
+            "DD/MM/YYYY",
+            "YY-MM-DD",
+            "MM/DD",
+            "HH:mm"
+    };
+
+    private boolean tryParseTextDate(String text) {
+        try {
+            DateUtils.parseDate(text,  DATE_FORMATS);
+            return true;
+        } catch (ParseException e) {
+            return false;
+        }
+    }
+
     public void generateMultiDartFilesRecursively(final VirtualFile parent, final Project project) {
-        List<MappingModel> importModels = new ArrayList<>();
+        List<MappingModelNode> importModels = new ArrayList<>();
 
         if (jsonTypeEnum == JsonTypeEnum.OBJECT) {
-            if (CollectionUtils.isNotEmpty(innerMappingModels)) {
-                // OBJECT type mapping model will preferentially
-                // generate it's inner mapping models
-                // e.g. OBJECT hold another OBJECT
+            if (CollectionUtils.isNotEmpty(childModelNodes)) {
+                // 对象类型将会优先生成它的内部子对象类型
+                // 例如，对象中包含另一个对象
                 // {"anotherObj":{"name":"Leo"}}
-                for (MappingModel innerMappingModel : innerMappingModels) {
-                    if (!innerMappingModel.isBasisJsonType()) {
-                        // not basis type mapping model will need 'import xx',
-                        // so it will be added for current mapping model using
-                        // in subsequent builds
-                        importModels.add(innerMappingModel);
+                for (MappingModelNode childNode : childModelNodes) {
+                    if (!childNode.isBasisJsonType()) {
+                        // 添加该节点需要引用的其他节点，将在生成文件中使用如下格式：
+                        // 'import xx'
+                        importModels.add(childNode);
 
-                        // inner mapping model generate
-                        innerMappingModel.generateMultiDartFilesRecursively(parent, project);
+                        // 其子节点继续生成
+                        childNode.generateMultiDartFilesRecursively(parent, project);
                     }
                 }
             }
         } else if (jsonTypeEnum == JsonTypeEnum.OBJECT_ARRAY) {
-            // if current mapping model is an OBJECT ARRAY,
-            // not only it's parent object need import OBJECT ARRAY's
-            // inner OBJECT, but also the inner OBJECT also
-            // need keeping on preferentially generate dart file
-            MappingModel mappingModel = innerMappingModels.get(0);
-            importModels.add(mappingModel);
-            mappingModel.generateMultiDartFilesRecursively(parent, project);
+            // 对象数组类型，将会取第1个对象生成新的对象节点，并继续处理这个新节点的子节点
+            MappingModelNode mappingModelNode = childModelNodes.get(0);
+            importModels.add(mappingModelNode);
+            mappingModelNode.generateMultiDartFilesRecursively(parent, project);
             return;
         } else {
-            // normal basis dart data type field will be generated by its parent object
+            // dart基础数据类型不再处理
             return;
         }
 
-        // final generated dart file of current mapping model
-        // this method only call by OBJECT mapping model
-        generatedDartFileOfCurrentModel(innerMappingModels, importModels, parent, project);
+        // 最后依据处理后的MappingModel节点进行文件生成
+        generatedDartFileOfCurrentModel(childModelNodes, importModels, parent, project);
     }
 
-    // reference: https://pub.dev/packages/json_serializable
+    // 参考: https://pub.dev/packages/json_serializable
     // format refer [Example]
-    private void generatedDartFileOfCurrentModel(List<MappingModel> currentNodeInnerMappingModels,
-                                                 List<MappingModel> importModels,
+    private void generatedDartFileOfCurrentModel(List<MappingModelNode> currentNodeInnerMappingModelNodes,
+                                                 List<MappingModelNode> importModels,
                                                  VirtualFile parent, Project project) {
 
-        AtomicReference<VirtualFile> fileRefer = getVirtualFileRef(parent);
+        AtomicReference<VirtualFile> fileRefer = createVirtualFileAndReturnFileHandle(parent);
 
         StringBuilder importFileStringBuilder = new StringBuilder();
         if (CollectionUtils.isNotEmpty(importModels)) {
-            for (MappingModel importModel : importModels) {
+            for (MappingModelNode importModel : importModels) {
                 importFileStringBuilder.append(String.format(GeneratedTemplate.Header.otherFileImport, importModel.getDartFileName() + ".dart"));
             }
             importFileStringBuilder.append("\n");
@@ -224,48 +241,48 @@ public class MappingModel {
 
         StringBuilder fieldsStringBuilder = new StringBuilder();
         StringBuilder constructorParametersStringBuilder = new StringBuilder();
-        if (CollectionUtils.isNotEmpty(currentNodeInnerMappingModels)) {
-            for (MappingModel innerMappingModel : currentNodeInnerMappingModels) {
-                boolean isRequired = innerMappingModel.isDartPropertyRequired();
-                Object defaultValue = innerMappingModel.getDartPropertyDefaultValue();
+        if (CollectionUtils.isNotEmpty(currentNodeInnerMappingModelNodes)) {
+            for (MappingModelNode childNode : currentNodeInnerMappingModelNodes) {
+                boolean isRequired = childNode.isDartPropertyRequired();
+                Object defaultValue = childNode.getDartPropertyDefaultValue();
                 boolean nullable = !isRequired && Objects.isNull(defaultValue);
 
-                // field description
-                fieldsStringBuilder.append(String.format(GeneratedTemplate.ClassBody.fieldDescription, innerMappingModel.getDescription()));
+                // 添加字段注释
+                fieldsStringBuilder.append(String.format(GeneratedTemplate.ClassBody.fieldDescription, childNode.getDescription()));
 
-                if (innerMappingModel.isMarkJsonKeyAnno()) {
-                    fieldsStringBuilder.append(String.format(GeneratedTemplate.ClassBody.fieldJsonKey, innerMappingModel.getJsonFieldName()));
+                if (childNode.isMarkJsonKeyAnno()) {
+                    fieldsStringBuilder.append(String.format(GeneratedTemplate.ClassBody.fieldJsonKey, childNode.getJsonFieldName()));
                 }
 
-                // really field
+                // 字段
                 fieldsStringBuilder.append(
                         String.format(GeneratedTemplate.ClassBody.field,
-                                this.convertDartFieldType(innerMappingModel, nullable),
-                                innerMappingModel.getDartPropertyName())
+                                this.convertDartFieldType(childNode, nullable),
+                                childNode.getDartPropertyName())
                 );
 
-                // process constructor parameters
+                // 处理初始化函数参数
                 if (isRequired && Objects.nonNull(defaultValue)) {
                     constructorParametersStringBuilder.append(
                             String.format(GeneratedTemplate.ClassBody.requiredConstructorWithDefaultValPart,
-                                    innerMappingModel.getDartPropertyName(),
-                                    getMappingModelDefaultValueString(innerMappingModel, defaultValue))
+                                    childNode.getDartPropertyName(),
+                                    getMappingModelDefaultValueString(childNode, defaultValue))
                     );
                 } else if (isRequired) {
                     constructorParametersStringBuilder.append(
                             String.format(GeneratedTemplate.ClassBody.requiredConstructorPart,
-                                    innerMappingModel.getDartPropertyName())
+                                    childNode.getDartPropertyName())
                     );
                 } else if (Objects.nonNull(defaultValue)) {
                     constructorParametersStringBuilder.append(
                             String.format(GeneratedTemplate.ClassBody.constructorOnlyDefaultValPart,
-                                    innerMappingModel.getDartPropertyName(),
-                                    getMappingModelDefaultValueString(innerMappingModel, defaultValue))
+                                    childNode.getDartPropertyName(),
+                                    getMappingModelDefaultValueString(childNode, defaultValue))
                     );
                 } else {
                     constructorParametersStringBuilder.append(
                             String.format(GeneratedTemplate.ClassBody.constructorNullablePart,
-                                    innerMappingModel.getDartPropertyName())
+                                    childNode.getDartPropertyName())
                     );
                 }
             }
@@ -287,7 +304,7 @@ public class MappingModel {
                 .append(GeneratedTemplate.Header.jsonSerializablePackAnno)
                 .append(String.format(GeneratedTemplate.ClassBody.className, this.getClassName()));
 
-        if (CollectionUtils.isNotEmpty(currentNodeInnerMappingModels)) {
+        if (CollectionUtils.isNotEmpty(currentNodeInnerMappingModelNodes)) {
             completeStringBuilder.append(fieldsStringBuilder);
             completeStringBuilder.append("\n");
         }
@@ -295,7 +312,7 @@ public class MappingModel {
         completeStringBuilder.append(
                         String.format(GeneratedTemplate.ClassBody.constructor,
                                 this.getClassName(),
-                                CollectionUtils.isNotEmpty(currentNodeInnerMappingModels) ? "{" + constructorParametersStringBuilder.toString() + "}" : ""))
+                                CollectionUtils.isNotEmpty(currentNodeInnerMappingModelNodes) ? "{" + constructorParametersStringBuilder.toString() + "}" : ""))
                 .append(String.format(GeneratedTemplate.ClassBody.fromJson, this.getClassName(), this.getClassName()))
                 .append(String.format(GeneratedTemplate.ClassBody.toJson, this.getClassName()))
                 .append(GeneratedTemplate.ClassBody.classEOF);
@@ -309,65 +326,67 @@ public class MappingModel {
         });
     }
 
-    private String getMappingModelDefaultValueString(MappingModel model, Object defVal) {
-        String defValString = (String) defVal;
+    private Object getMappingModelDefaultValueString(MappingModelNode model, Object defVal) {
+        String defValString = String.valueOf(defVal);
         switch (model.getDartDataTypeEnum()) {
             case INT:
                 if (defValString.contains(".")) {
-                    return defValString.split("\\.")[0];
+                    return Long.parseLong(defValString.split("\\.")[0]);
                 } else {
                     try {
-                        return String.valueOf(Long.parseLong(defValString));
+                        return Long.parseLong(defValString);
                     } catch (Exception e) {
-                        return "0";
+                        return 0;
                     }
                 }
             case DOUBLE:
                 if (defValString.contains(".")) {
-                    return defValString;
+                    return defVal;
                 } else {
                     try {
-                        return Long.parseLong(defValString) + ".0";
+                        return Double.parseDouble(Long.parseLong(defValString) + ".0");
                     } catch (Exception e) {
-                        return "0.0";
+                        return Double.parseDouble("0.0");
                     }
                 }
             case BOOLEAN:
                 if ("true".equalsIgnoreCase(defValString) || "1".equalsIgnoreCase(defValString)) {
-                    return "true";
+                    return true;
                 } else if ("false".equalsIgnoreCase(defValString) || "0".equalsIgnoreCase(defValString)) {
-                    return "false";
+                    return false;
                 }
 
-                return "true";
+                return true;
+            case DATETIME:
+                return "";
             default:
             case STRING:
                 return "'" + defVal + "'";
         }
     }
 
-    private String convertDartFieldType(MappingModel mappingModel, boolean nullable) {
-        if (mappingModel.getJsonTypeEnum() == JsonTypeEnum.OBJECT) {
-            return nullable ? mappingModel.getClassName() + "?" : mappingModel.getClassName();
-        } else if (mappingModel.getJsonTypeEnum() == JsonTypeEnum.OBJECT_ARRAY) {
-            MappingModel firstModel = mappingModel.getInnerMappingModels().get(0);
+    private String convertDartFieldType(MappingModelNode mappingModelNode, boolean nullable) {
+        if (mappingModelNode.getJsonTypeEnum() == JsonTypeEnum.OBJECT) {
+            return nullable ? mappingModelNode.getClassName() + "?" : mappingModelNode.getClassName();
+        } else if (mappingModelNode.getJsonTypeEnum() == JsonTypeEnum.OBJECT_ARRAY) {
+            MappingModelNode firstModel = mappingModelNode.getChildModelNodes().get(0);
             return nullable ? "List<" + firstModel.getClassName() + "?>" : "List<" + firstModel.getClassName() + ">";
-        } else if (mappingModel.getJsonTypeEnum() == JsonTypeEnum.BASIS_TYPE_ARRAY) {
-            MappingModel firstModel = mappingModel.getInnerMappingModels().get(0);
+        } else if (mappingModelNode.getJsonTypeEnum() == JsonTypeEnum.BASIS_TYPE_ARRAY) {
+            MappingModelNode firstModel = mappingModelNode.getChildModelNodes().get(0);
             return nullable ? "List<" + convertDartBasisType(firstModel.getDartDataTypeEnum()) + "?>"
                     : "List<" + convertDartBasisType(firstModel.getDartDataTypeEnum()) + ">";
         } else {
-            return nullable ? convertDartBasisType(mappingModel.getDartDataTypeEnum()) + "?"
-                    : convertDartBasisType(mappingModel.getDartDataTypeEnum());
+            return nullable ? convertDartBasisType(mappingModelNode.getDartDataTypeEnum()) + "?"
+                    : convertDartBasisType(mappingModelNode.getDartDataTypeEnum());
         }
     }
 
     public void generateSingleDartFileWithAllClasses(VirtualFile parent, Project project) {
-        AtomicReference<VirtualFile> fileRefer = getVirtualFileRef(parent);
+        AtomicReference<VirtualFile> fileRefer = createVirtualFileAndReturnFileHandle(parent);
 
-        List<MappingModel> allObjectMappingModels = new ArrayList<>();
-        allObjectMappingModels.add(this);
-        collectAllInnerObjectMappingModels(allObjectMappingModels);
+        List<MappingModelNode> allObjectMappingModelNodes = new ArrayList<>();
+        allObjectMappingModelNodes.add(this);
+        collectAllChildObjectMappingModels(allObjectMappingModelNodes);
 
         StringBuilder generalHeaderStringBuilder = new StringBuilder();
         generalHeaderStringBuilder.append(GeneratedTemplate.Header.generatedFileHeaders.get(0))
@@ -377,7 +396,7 @@ public class MappingModel {
                 .append("\n")
                 .append(String.format(GeneratedTemplate.Header.gFileImport, this.getDartFileName()));
 
-        StringBuilder allDartClassStringBuilder = generateAllDartClassStringBuilder(allObjectMappingModels);
+        StringBuilder allDartClassStringBuilder = generateAllDartClassStringBuilder(allObjectMappingModelNodes);
 
         StringBuilder completeStringBuilder = new StringBuilder(generalHeaderStringBuilder);
         completeStringBuilder.append(allDartClassStringBuilder);
@@ -391,79 +410,79 @@ public class MappingModel {
         });
     }
 
-    private StringBuilder generateAllDartClassStringBuilder(List<MappingModel> allObjectMappingModels) {
+    private StringBuilder generateAllDartClassStringBuilder(List<MappingModelNode> allObjectMappingModelNodes) {
         StringBuilder allDartClassStringBuilder = new StringBuilder();
 
-        for (MappingModel mappingModel : allObjectMappingModels) {
-            // single dart class fields
+        for (MappingModelNode mappingModelNode : allObjectMappingModelNodes) {
+            // 单个dart文件字段
             StringBuilder fieldsStringBuilder = new StringBuilder();
-            // dart class constructor parameters
+            // dart类初始化函数参数
             StringBuilder constructorParametersStringBuilder = new StringBuilder();
-            if (CollectionUtils.isNotEmpty(mappingModel.getInnerMappingModels())) {
-                for (MappingModel innerMappingModel : mappingModel.getInnerMappingModels()) {
-                    boolean isRequired = innerMappingModel.isDartPropertyRequired();
-                    Object defaultValue = innerMappingModel.getDartPropertyDefaultValue();
+            if (CollectionUtils.isNotEmpty(mappingModelNode.getChildModelNodes())) {
+                for (MappingModelNode childNode : mappingModelNode.getChildModelNodes()) {
+                    boolean isRequired = childNode.isDartPropertyRequired();
+                    Object defaultValue = childNode.getDartPropertyDefaultValue();
                     boolean nullable = !isRequired && Objects.isNull(defaultValue);
 
-                    // field description
-                    fieldsStringBuilder.append(String.format(GeneratedTemplate.ClassBody.fieldDescription, innerMappingModel.getDescription()));
+                    // 字段注释处理
+                    fieldsStringBuilder.append(String.format(GeneratedTemplate.ClassBody.fieldDescription, childNode.getDescription()));
 
-                    if (innerMappingModel.isMarkJsonKeyAnno()) {
-                        fieldsStringBuilder.append(String.format(GeneratedTemplate.ClassBody.fieldJsonKey, innerMappingModel.getJsonFieldName()));
+                    if (childNode.isMarkJsonKeyAnno()) {
+                        fieldsStringBuilder.append(String.format(GeneratedTemplate.ClassBody.fieldJsonKey, childNode.getJsonFieldName()));
                     }
 
-                    // really field
+                    // 字段处理
                     fieldsStringBuilder.append(
                             String.format(GeneratedTemplate.ClassBody.field,
-                                    this.convertDartFieldType(innerMappingModel, nullable),
-                                    innerMappingModel.getDartPropertyName())
+                                    this.convertDartFieldType(childNode, nullable),
+                                    childNode.getDartPropertyName())
                     );
 
-                    // process constructor parameters
+                    // 处理构造函数
                     if (isRequired && Objects.nonNull(defaultValue)) {
                         constructorParametersStringBuilder.append(
                                 String.format(GeneratedTemplate.ClassBody.requiredConstructorWithDefaultValPart,
-                                        innerMappingModel.getDartPropertyName(),
-                                        getMappingModelDefaultValueString(innerMappingModel, defaultValue))
+                                        childNode.getDartPropertyName(),
+                                        getMappingModelDefaultValueString(childNode, defaultValue))
                         );
                     } else if (isRequired) {
                         constructorParametersStringBuilder.append(
                                 String.format(GeneratedTemplate.ClassBody.requiredConstructorPart,
-                                        innerMappingModel.getDartPropertyName())
+                                        childNode.getDartPropertyName())
                         );
                     } else if (Objects.nonNull(defaultValue)) {
                         constructorParametersStringBuilder.append(
                                 String.format(GeneratedTemplate.ClassBody.constructorOnlyDefaultValPart,
-                                        innerMappingModel.getDartPropertyName(),
-                                        getMappingModelDefaultValueString(innerMappingModel, defaultValue))
+                                        childNode.getDartPropertyName(),
+                                        getMappingModelDefaultValueString(childNode, defaultValue))
                         );
                     } else {
                         constructorParametersStringBuilder.append(
                                 String.format(GeneratedTemplate.ClassBody.constructorNullablePart,
-                                        innerMappingModel.getDartPropertyName())
+                                        childNode.getDartPropertyName())
                         );
                     }
                 }
             }
 
-            // adding other json_serializable import file
+            // 添加其他json_serializable生成的数据
             StringBuilder singleDartClassStringBuilder = new StringBuilder();
-            singleDartClassStringBuilder.append(String.format(GeneratedTemplate.Header.description, mappingModel.getDescription()))
+            singleDartClassStringBuilder.append(String.format(GeneratedTemplate.Header.description, mappingModelNode.getDescription()))
                     .append(GeneratedTemplate.Header.jsonSerializablePackAnno)
-                    .append(String.format(GeneratedTemplate.ClassBody.className, mappingModel.getClassName()));
+                    .append(String.format(GeneratedTemplate.ClassBody.className, mappingModelNode.getClassName()));
 
-            if (CollectionUtils.isNotEmpty(mappingModel.getInnerMappingModels())) {
+            if (CollectionUtils.isNotEmpty(mappingModelNode.getChildModelNodes())) {
                 singleDartClassStringBuilder.append(fieldsStringBuilder);
                 singleDartClassStringBuilder.append("\n");
             }
 
-            // adding dart class methods
+            // 添加dart方法
             singleDartClassStringBuilder.append(
                             String.format(GeneratedTemplate.ClassBody.constructor,
-                                    mappingModel.getClassName(),
-                                    CollectionUtils.isNotEmpty(mappingModel.getInnerMappingModels()) ? "{" + constructorParametersStringBuilder + "}" : ""))
-                    .append(String.format(GeneratedTemplate.ClassBody.fromJson, mappingModel.getClassName(), mappingModel.getClassName()))
-                    .append(String.format(GeneratedTemplate.ClassBody.toJson, mappingModel.getClassName()))
+                                    mappingModelNode.getClassName(),
+                                    CollectionUtils.isNotEmpty(mappingModelNode.getChildModelNodes()) ? "{" + constructorParametersStringBuilder + "}" : ""))
+                    .append(String.format(GeneratedTemplate.ClassBody.fromJson, mappingModelNode.getClassName(), mappingModelNode.getClassName()))
+                    .append(String.format(GeneratedTemplate.ClassBody.toJson, mappingModelNode.getClassName()))
                     .append(GeneratedTemplate.ClassBody.classEOF);
 
             allDartClassStringBuilder.append("\n\n")
@@ -473,24 +492,24 @@ public class MappingModel {
         return allDartClassStringBuilder;
     }
 
-    private void collectAllInnerObjectMappingModels(List<MappingModel> mappingModelCollection) {
-        if (CollectionUtils.isEmpty(this.getInnerMappingModels())) {
+    private void collectAllChildObjectMappingModels(List<MappingModelNode> mappingModelNodeCollection) {
+        if (CollectionUtils.isEmpty(getChildModelNodes())) {
             return;
         }
 
-        for (MappingModel innerMappingModel : this.getInnerMappingModels()) {
-            if (!innerMappingModel.isBasisJsonType()) {
-                // not basis type mapping model will generate class in single file
-                mappingModelCollection.add(innerMappingModel);
+        for (MappingModelNode childNode : getChildModelNodes()) {
+            if (!childNode.isBasisJsonType()) {
+                // 非基础数据类型的节点将会被单独生成一个dart文件中
+                mappingModelNodeCollection.add(childNode);
 
-                // continue collect inner mapping models
-                innerMappingModel.collectAllInnerObjectMappingModels(mappingModelCollection);
+                // 继续处理子节点
+                childNode.collectAllChildObjectMappingModels(mappingModelNodeCollection);
             }
         }
     }
 
-    // generate new dart file and return file handle
-    private AtomicReference<VirtualFile> getVirtualFileRef(VirtualFile parent) {
+    // 生成新的文件并返回虚拟文件节点
+    private AtomicReference<VirtualFile> createVirtualFileAndReturnFileHandle(VirtualFile parent) {
         AtomicReference<VirtualFile> fileRefer = new AtomicReference<>();
 
         ApplicationManager.getApplication().runWriteAction(() -> {
@@ -519,6 +538,8 @@ public class MappingModel {
                 return "String";
             case BOOLEAN:
                 return "bool";
+            case DATETIME:
+                return "DateTime";
             case OBJECT:
             default:
                 return "none";
@@ -576,8 +597,8 @@ public class MappingModel {
         return isRoot;
     }
 
-    public List<MappingModel> getInnerMappingModels() {
-        return innerMappingModels;
+    public List<MappingModelNode> getChildModelNodes() {
+        return childModelNodes;
     }
 
     public void setDartPropertyName(String dartPropertyName) {

@@ -1,6 +1,6 @@
 package pers.chaos.jsondartserializable.windows.components;
 
-import pers.chaos.jsondartserializable.core.json.enums.JsonTypeEnum;
+import pers.chaos.jsondartserializable.core.enums.JsonTypeEnum;
 import pers.chaos.jsondartserializable.windows.MappingModelTreeNode;
 
 import javax.imageio.ImageIO;
