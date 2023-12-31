@@ -54,6 +54,7 @@
             Now, you can keep 'messages' property name and use 'Message' class name.<br/>
         V0.8: Add [Realtime default value] user option. Now, JSON string analysed result will automatically fill default value.<br/>
         V0.9: Add [All dart class into single file] user option. Now, JSON string's all objects will put into single dart file.<br/>
+        V1.0: Optimize the 『Preview Edit』 and 『Generated』 functions so that after modifying the JSON string, both 『Preview Edit』 and 『Generated』 can retain the edited content.<br/>
         </div>
 
         ]]>
@@ -71,7 +72,7 @@
 
     <actions>
         <action id="json_convert_dart_main_action" class="pers.chaos.jsondartserializable.actions.CreateJsonConvertDartClassAction"
-                text="Json to Dart Class" description="Json2Dart" icon="AllIcons.FileTypes.Json">
+                text="Json to Dart Convertor" description="Json2Dart" icon="AllIcons.FileTypes.Json">
             <add-to-group group-id="NewGroup" anchor="last"/>
         </action>
     </actions>

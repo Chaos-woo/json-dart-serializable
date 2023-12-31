@@ -58,8 +58,9 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
         this.tablesColumnReflectable = JsonAnalysisTableKeys.MappingModelTableReflectable.values();
         Arrays.sort(this.tablesColumnReflectable, Comparator.comparingInt(JsonAnalysisTableKeys.MappingModelTableReflectable::getTableColumnIndex));
 
-        // early get JSON model mapping table model data
-        final Object[][] tableModelData = this.getMappingModelTableModelData(this.tablesColumnReflectable);
+        // 提前处理表格模型展示数据
+        final Object[][] tableModelData = getMappingModelTableModelData(this.tablesColumnReflectable);
+        // 获取表格的数据模型及可编辑规则
         DefaultTableModel tableModel = new DefaultTableModel() {
             public boolean isCellEditable(int row, int column) {
                 return tableCellEditableRuleVerify(tableModelData, row, column);
@@ -69,7 +70,7 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
 
         jsonAnalysisTable.setModel(tableModel);
         tableModel = (DefaultTableModel) jsonAnalysisTable.getModel();
-        // set table column title
+        // 设置列标题
         Object[] columnTitle = Arrays.stream(this.tablesColumnReflectable)
                 .map(JsonAnalysisTableKeys.MappingModelTableReflectable::getColumnName)
                 .toArray();
@@ -91,7 +92,7 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
                 .getColumn(JsonAnalysisTableKeys.MappingModelTableReflectable.DART_PROPERTY_REQUIRED.getTableColumnIndex())
                 .setCellRenderer(new DartPropertyRequiredCheckBox.DartPropertyRequiredCheckBoxRenderer());
 
-        // set table data
+        // 设置表格数据
         for (Object[] data : tableModelData) {
             tableModel.addRow(data);
         }
@@ -103,12 +104,12 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
         List<MappingModelNode> innerMappingModelNodes = this.mappingModelNode.getChildModelNodes();
         Object[][] tableData = new Object[innerMappingModelNodes.size()][tablesColumnReflectable.length];
 
-        // initial editable cell records
+        // 初始化可编辑的数据记录
         this.editableCellRecords = new boolean[innerMappingModelNodes.size()][tablesColumnReflectable.length];
         for (int i = 0; i < innerMappingModelNodes.size(); i++) {
             MappingModelNode innerProperty = innerMappingModelNodes.get(i);
             for (int j = 0; j < tablesColumnReflectable.length; j++) {
-                // firstly all cell editable
+                // 初始化时所有格子都可编辑
                 this.editableCellRecords[i][j] = true;
 
                 JsonAnalysisTableKeys.MappingModelTableReflectable ref = tablesColumnReflectable[j];
@@ -131,7 +132,7 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
     }
 
     private void onConfirm() {
-        // table data convert to MappingModelNode
+        // 表数据转换为模型节点数据
         List<MappingModelNode> innerMappingModelNodes = this.mappingModelNode.getChildModelNodes();
         for (int i = 0; i < innerMappingModelNodes.size(); i++) {
             MappingModelNode innerProperty = innerMappingModelNodes.get(i);
@@ -158,19 +159,19 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
     }
 
     private boolean tableCellEditableRuleVerify(final Object[][] tableModelData, int row, int column) {
-        // all json field name can not be edited
+        // 可被编辑的JSON字段
         if (column == JsonAnalysisTableKeys.MappingModelTableReflectable.JSON_FIELD_NAME.getTableColumnIndex()) {
             this.editableCellRecords[row][column] = false;
             return false;
         }
 
-        // all analysis json type can not be edited
+        // 不可被编辑的JSON字段
         if (column == JsonAnalysisTableKeys.MappingModelTableReflectable.JSON_DATA_TYPE.getTableColumnIndex()) {
             this.editableCellRecords[row][column] = false;
             return false;
         }
 
-        // dart object type(object array) can not edit dart basis type
+        // dart对象类型不可被编辑
         if (column == JsonAnalysisTableKeys.MappingModelTableReflectable.DART_DATA_TYPE.getTableColumnIndex()) {
             DartDataTypeEnum dartDataTypeEnum = (DartDataTypeEnum) tableModelData[row][column];
             if (DartDataTypeEnum.OBJECT == dartDataTypeEnum) {
@@ -179,7 +180,7 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
             }
         }
 
-        // dart basis type can not edit dart file name
+        // dart基础数据类型不可被编辑为对象类型
         if (column == JsonAnalysisTableKeys.MappingModelTableReflectable.DART_FILE_NAME.getTableColumnIndex()) {
             DartDataTypeEnum dartDataTypeEnum = (DartDataTypeEnum) tableModelData[row][JsonAnalysisTableKeys.MappingModelTableReflectable.DART_DATA_TYPE.getTableColumnIndex()];
             if (DartDataTypeEnum.OBJECT != dartDataTypeEnum) {
@@ -188,7 +189,7 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
             }
         }
 
-        // only dart type is object type can edit class name
+        // 仅有对象类型的才可被编辑类名
         if (column == JsonAnalysisTableKeys.MappingModelTableReflectable.INNER_OBJECT_CLASS_NAME.getTableColumnIndex()) {
             DartDataTypeEnum dartDataTypeEnum = (DartDataTypeEnum) tableModelData[row][JsonAnalysisTableKeys.MappingModelTableReflectable.DART_DATA_TYPE.getTableColumnIndex()];
             if (DartDataTypeEnum.OBJECT != dartDataTypeEnum) {
@@ -197,7 +198,7 @@ public class AnalysisJsonDartMappingTableDialog extends JDialog {
             }
         }
 
-        // can not edit default value if not dart basis type
+        // 如果不是dart基本数据类型，那不可编辑默认值数据
         if (column == JsonAnalysisTableKeys.MappingModelTableReflectable.DART_PROPERTY_DEFAULT_VALUE.getTableColumnIndex()) {
             JsonTypeEnum jsonTypeEnum = (JsonTypeEnum) tableModelData[row][JsonAnalysisTableKeys.MappingModelTableReflectable.JSON_DATA_TYPE.getTableColumnIndex()];
             if (JsonTypeEnum.BASIS_TYPE != jsonTypeEnum) {

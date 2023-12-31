@@ -11,7 +11,7 @@ import com.intellij.ui.JBColor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import pers.chaos.jsondartserializable.core.json.JsonAnalyser;
-import pers.chaos.jsondartserializable.core.json.JsonDartAnalysisMapping;
+import pers.chaos.jsondartserializable.core.json.JsonDartAnalysis;
 import pers.chaos.jsondartserializable.core.json.MappingModelNode;
 import pers.chaos.jsondartserializable.utils.DartClassFileUtils;
 import pers.chaos.jsondartserializable.utils.NotificationUtils;
@@ -28,7 +28,7 @@ import java.util.Objects;
 public class JsonStringInputDialog extends JDialog {
     private final AnActionEvent anActionEvent;
 
-    private JsonDartAnalysisMapping analysisMapping;
+    private JsonDartAnalysis jsonAnalysis;
 
     private JPanel contentPane;
     private JButton buttonOK;
@@ -60,7 +60,7 @@ public class JsonStringInputDialog extends JDialog {
         buttonPreviewEdit.addActionListener(e -> onPreviewEdit());
 
         buttonClearEdited.addActionListener(e -> {
-            this.analysisMapping = null;
+            this.jsonAnalysis = null;
 
             Messages.showInfoMessage("Your input JSON analysis mapping model cleared", "Clear Success");
         });
@@ -83,10 +83,10 @@ public class JsonStringInputDialog extends JDialog {
         textFieldClassName.addKeyListener(new KeyListener() {
             @Override
             public void keyReleased(KeyEvent e) {
-                if (Objects.nonNull(analysisMapping)) {
+                if (Objects.nonNull(jsonAnalysis)) {
                     JTextField textField = (JTextField) e.getSource();
                     String newRootClassName = textField.getText();
-                    MappingModelNode rootMappingModelNode = analysisMapping.getRootMappingModel();
+                    MappingModelNode rootMappingModelNode = jsonAnalysis.getRootMappingModel();
                     rootMappingModelNode.setClassName(newRootClassName);
                     rootMappingModelNode.setJsonFieldName(newRootClassName);
                     rootMappingModelNode.setDartFileName(DartClassFileUtils.getDartFileNameByClassName(newRootClassName));
@@ -101,10 +101,10 @@ public class JsonStringInputDialog extends JDialog {
         textFieldClassDescription.addKeyListener(new KeyListener() {
             @Override
             public void keyReleased(KeyEvent e) {
-                if (Objects.nonNull(analysisMapping)) {
+                if (Objects.nonNull(jsonAnalysis)) {
                     JTextField textField = (JTextField) e.getSource();
                     String newRootModelDescription = textField.getText();
-                    analysisMapping.getRootMappingModel().setDescription(newRootModelDescription);
+                    jsonAnalysis.getRootMappingModel().setDescription(newRootModelDescription);
                 }
             }
 
@@ -116,19 +116,32 @@ public class JsonStringInputDialog extends JDialog {
     }
 
     private void onPreviewEdit() {
-        if (Objects.isNull(this.analysisMapping)) {
-            boolean analysisRet = inputJsonStringAnalysis();
-            if (!analysisRet) return;
+        if (Objects.isNull(this.jsonAnalysis)) {
+            JsonDartAnalysis jsonAnalysis = inputJsonStringAnalysis();
+            if (Objects.isNull(jsonAnalysis)) {
+                return;
+            } else {
+                this.jsonAnalysis = jsonAnalysis;
+            }
         }
 
-        boolean isRootObjectNodeHasNoChildNodes = this.analysisMapping.getRootMappingModel().getChildModelNodes().stream()
+        // 已经存在解析过的根节点时，保留一些用户之前已填写的数据，
+        // 删除JSON中不存在的字段，增加JSON中新增的字段解析模型
+        JsonAnalyser.AnalysisRebuildData simpleAnalysisData = getSimpleInputJsonAnalysisData();
+        if (Objects.isNull(simpleAnalysisData)) {
+            return;
+        }
+        this.jsonAnalysis.rebuildRootMappingModel(simpleAnalysisData);
+
+        boolean isRootObjectNodeHasNoChildNodes = this.jsonAnalysis.getRootMappingModel().getChildModelNodes().stream()
                 .allMatch(MappingModelNode::isBasisJsonType);
 
         if (isRootObjectNodeHasNoChildNodes) {
+            // 根节点无对象/对象数组子节点时直接展示表格形式的属性表
             AnalysisJsonDartMappingTableDialog dialog =
-                    new AnalysisJsonDartMappingTableDialog(this.analysisMapping.getRootMappingModel());
+                    new AnalysisJsonDartMappingTableDialog(this.jsonAnalysis.getRootMappingModel());
             dialog.pack();
-            dialog.setTitle("『JSON』's Mapping Model Table");
+            dialog.setTitle("JSON mapping Dart objects table");
             Point location = this.getLocation();
             double movingX = location.getX() - ((double) Consts.AnalysisJsonDialog.WIDTH_WINDOW / 4);
             if (movingX < 0) {
@@ -139,24 +152,21 @@ public class JsonStringInputDialog extends JDialog {
             dialog.setMinimumSize(new Dimension(Consts.AnalysisJsonDialog.WIDTH_WINDOW, Consts.AnalysisJsonDialog.HEIGHT_WINDOW));
             dialog.setVisible(true);
         } else {
-            JsonObjectTreeDialog dialog = new JsonObjectTreeDialog(this.analysisMapping);
+            // 根节点存在对象/对象数组子节点时展示根节点下的对象树
+            JsonObjectTreeDialog dialog = new JsonObjectTreeDialog(this.jsonAnalysis);
             dialog.pack();
-            dialog.setTitle("Root Node Mapping Model Object Tree");
+            dialog.setTitle("Root mapping objects tree");
             dialog.setLocation(this.getLocation());
             dialog.setMinimumSize(new Dimension(400, 500));
             dialog.setVisible(true);
         }
     }
 
-    private boolean inputJsonStringAnalysis() {
-        hideJsonAnalysisErrorTip();
-
-        // support user input custom OBJECT dart class name
+    private JsonAnalyser.AnalysisRebuildData  getSimpleInputJsonAnalysisData() {
         String userInputRootClassName = textFieldClassName.getText().trim();
-        // user input JSON string
         String jsonString = textAreaJsonString.getText().trim();
         if (StringUtil.isEmpty(userInputRootClassName) || StringUtil.isEmpty(jsonString)) {
-            showAnalysisErrorTip("Empty class name or JSON string");
+            showAnalysisErrorTip("Empty root class name or invalid JSON string!!");
         }
 
         UserAdvanceConfiguration userAdvanceConfiguration = new UserAdvanceConfiguration();
@@ -164,20 +174,43 @@ public class JsonStringInputDialog extends JDialog {
         userAdvanceConfiguration.setEnableAllClassGeneratedIntoSingleFile(allClassIntoSingleCheckBox.isSelected());
 
         try {
-            // check and analysis mapping model
-            this.analysisMapping = JsonAnalyser.analysis(userInputRootClassName, jsonString, userAdvanceConfiguration);
+            return new JsonAnalyser.AnalysisRebuildData(userInputRootClassName, jsonString, userAdvanceConfiguration);
         } catch (Exception e) {
             System.out.println(ExceptionUtils.getStackTrace(e));
             showJsonFormatErrorTip();
-            return false;
+            return null;
         }
-        return true;
+    }
+
+    private JsonDartAnalysis inputJsonStringAnalysis() {
+        hideJsonAnalysisErrorTip();
+
+        String userInputRootClassName = textFieldClassName.getText().trim();
+        String jsonString = textAreaJsonString.getText().trim();
+        if (StringUtil.isEmpty(userInputRootClassName) || StringUtil.isEmpty(jsonString)) {
+            showAnalysisErrorTip("Empty root class name or invalid JSON string!!");
+        }
+
+        UserAdvanceConfiguration userAdvanceConfiguration = new UserAdvanceConfiguration();
+        userAdvanceConfiguration.setEnableRealtimeJsonDefaultValueAnalysis(realtimeDefaultValCheckBox.isSelected());
+        userAdvanceConfiguration.setEnableAllClassGeneratedIntoSingleFile(allClassIntoSingleCheckBox.isSelected());
+
+        JsonDartAnalysis jsonAnalysis;
+        try {
+            // 分析JSON并生成模型
+            jsonAnalysis = JsonAnalyser.analysis(userInputRootClassName, jsonString, userAdvanceConfiguration);
+        } catch (Exception e) {
+            System.out.println(ExceptionUtils.getStackTrace(e));
+            showJsonFormatErrorTip();
+            return null;
+        }
+        return jsonAnalysis;
     }
 
     private void onFormat() {
         hideJsonAnalysisErrorTip();
         try {
-            // output pretty json display for user
+            // JSON字符串美化
             String prettyJson = JsonAnalyser.getPrettyString(textAreaJsonString.getText().trim());
             textAreaJsonString.setText(prettyJson);
         } catch (Exception e) {
@@ -190,7 +223,7 @@ public class JsonStringInputDialog extends JDialog {
     }
 
     private void showJsonFormatErrorTip() {
-        labelError.setText("Invalid JSON string, please check it");
+        labelError.setText("Invalid JSON string!!");
         labelError.setForeground(JBColor.red);
     }
 
@@ -204,13 +237,25 @@ public class JsonStringInputDialog extends JDialog {
     }
 
     private void onGenerate() {
-        if (Objects.isNull(this.analysisMapping)) {
-            boolean analysisRet = inputJsonStringAnalysis();
-            if (!analysisRet) return;
+        if (Objects.isNull(this.jsonAnalysis)) {
+            JsonDartAnalysis jsonAnalysis = inputJsonStringAnalysis();
+            if (Objects.isNull(jsonAnalysis)) {
+                return;
+            } else {
+                this.jsonAnalysis = jsonAnalysis;
+            }
         }
 
+        // 已经存在解析过的根节点时，保留一些用户之前已填写的数据，
+        // 删除JSON中不存在的字段，增加JSON中新增的字段解析模型
+        JsonAnalyser.AnalysisRebuildData simpleAnalysisData = getSimpleInputJsonAnalysisData();
+        if (Objects.isNull(simpleAnalysisData)) {
+            return;
+        }
+        this.jsonAnalysis.rebuildRootMappingModel(simpleAnalysisData);
+
         String classDesc = textFieldClassDescription.getText();
-        MappingModelNode rootMappingModelNode = this.analysisMapping.getRootMappingModel();
+        MappingModelNode rootMappingModelNode = this.jsonAnalysis.getRootMappingModel();
         if (StringUtils.isNoneBlank(classDesc)) {
             rootMappingModelNode.setDescription(classDesc);
         }
@@ -220,41 +265,41 @@ public class JsonStringInputDialog extends JDialog {
             return;
         }
 
-        // get user current focus virtual file's handle
+        // 获取用户当前focus的文件
         VirtualFile parent = anActionEvent.getData(CommonDataKeys.VIRTUAL_FILE);
         if (parent != null && parent.isDirectory()) {
             VirtualFile child = parent.findChild(rootMappingModelNode.getDartFileName() + ".dart");
             if (Objects.nonNull(child)) {
-                Messages.showErrorDialog(
+                Messages.showErrorDialog("Exist " +
                         rootMappingModelNode.getDartFileName()
-                                + ".dart has exist, please modify root class name 『 "
+                                + ".dart file. Please edit root dart class name 『 "
                                 + rootMappingModelNode.getClassName() + " 』",
-                        "Generated Error");
+                        "Json to Dart convert fail!!");
                 return;
             }
         }
 
         try {
-            // output dart class from mapping model
-            outputDartClassModelFile(parent, project, this.analysisMapping);
+            // 生成dart文件
+            outputDartClassModelFile(parent, project, this.jsonAnalysis);
         } catch (IOException e) {
-            showAnalysisErrorTip("Generate dart file fail");
-            NotificationUtils.show(this.anActionEvent.getProject(), "Generated error", "Check it", NotificationType.WARNING);
+            showAnalysisErrorTip("Json to Dart convert fail!!");
+            NotificationUtils.show(this.anActionEvent.getProject(), "Json to Dart convert fail.", "Check JSON data string, please.", NotificationType.WARNING);
             return;
         }
         dispose();
     }
 
-    private void outputDartClassModelFile(VirtualFile parent, Project project, JsonDartAnalysisMapping analysisMapping) throws IOException {
+    private void outputDartClassModelFile(VirtualFile parent, Project project, JsonDartAnalysis analysisMapping) throws IOException {
         if (parent != null && parent.isDirectory()) {
-            // start generate dart class
+            // 开始生成文件
             analysisMapping.generated(parent, project);
 
-            // refresh  IntelliJ file system
+            // 刷新IntelliJ文件系统
             parent.refresh(false, true);
             NotificationUtils.show(project,
-                    "Convert success",
-                    analysisMapping.getRootMappingModel().getDartFileName() + ".dart generated",
+                    "Json to Dart convert success!!",
+                    analysisMapping.getRootMappingModel().getDartFileName() + ".dart generated.",
                     NotificationType.INFORMATION);
         }
     }

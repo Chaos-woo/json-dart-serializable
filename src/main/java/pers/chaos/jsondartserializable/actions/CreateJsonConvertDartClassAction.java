@@ -20,7 +20,7 @@ public class CreateJsonConvertDartClassAction extends AnAction {
 
         JsonStringInputDialog dialog = new JsonStringInputDialog(e);
         dialog.pack();
-        dialog.setTitle("JSON to Dart Class Generated");
+        dialog.setTitle("JSON to Dart Convertor");
         dialog.setLocation(
                 windowLocation.x + (windowSize.width - dialog.getWidth()) / 2,
                 (int)(windowLocation.y + (windowSize.getHeight() - dialog.getHeight()) / 2)

@@ -1,7 +1,7 @@
 package pers.chaos.jsondartserializable.windows;
 
 import org.apache.commons.collections.CollectionUtils;
-import pers.chaos.jsondartserializable.core.json.JsonDartAnalysisMapping;
+import pers.chaos.jsondartserializable.core.json.JsonDartAnalysis;
 import pers.chaos.jsondartserializable.core.json.MappingModelNode;
 import pers.chaos.jsondartserializable.core.enums.JsonTypeEnum;
 import pers.chaos.jsondartserializable.windows.components.TreeNodeCellRenderer;
@@ -16,13 +16,13 @@ import java.util.stream.Collectors;
 
 public class JsonObjectTreeDialog extends JDialog {
 
-    private final JsonDartAnalysisMapping analysisMapping;
+    private final JsonDartAnalysis analysisMapping;
 
     private JPanel contentPane;
     private JButton buttonOK;
     private JTree jsonTree;
 
-    public JsonObjectTreeDialog(JsonDartAnalysisMapping analysisMapping) {
+    public JsonObjectTreeDialog(JsonDartAnalysis analysisMapping) {
         this.analysisMapping = analysisMapping;
 
         setContentPane(contentPane);
@@ -82,7 +82,7 @@ public class JsonObjectTreeDialog extends JDialog {
 
         AnalysisJsonDartMappingTableDialog dialog = new AnalysisJsonDartMappingTableDialog(effectiveModel);
         dialog.pack();
-        dialog.setTitle("『OBJECT』's Mapping Model Table");
+        dialog.setTitle("JSON mapping Dart objects table");
         Point location = this.getLocation();
         double movingX = location.getX() - ((double) Consts.AnalysisJsonDialog.WIDTH_WINDOW / 4);
         if (movingX < 0) {

@@ -14,8 +14,8 @@ public final class JsonAnalyser {
         return PRETTY_PRINTER.writerWithDefaultPrettyPrinter().writeValueAsString(node);
     }
 
-    public static JsonDartAnalysisMapping analysis(String className, String jsonString,
-                                                   UserAdvanceConfiguration userAdvanceConfiguration)
+    public static JsonDartAnalysis analysis(String className, String jsonString,
+                                            UserAdvanceConfiguration userAdvanceConfiguration)
             throws JsonProcessingException {
         JsonNode node = ANALYSER.readTree(jsonString);
 
@@ -23,6 +23,34 @@ public final class JsonAnalyser {
             throw new RuntimeException("Only support Object JSON tree analysis");
         }
 
-        return new JsonDartAnalysisMapping(className, node, userAdvanceConfiguration);
+        return new JsonDartAnalysis(className, node, userAdvanceConfiguration);
+    }
+
+    public static class AnalysisRebuildData {
+        private final String className;
+        private final JsonNode jsonNode;
+        private final UserAdvanceConfiguration userAdvanceConfiguration;
+
+        public AnalysisRebuildData(String className, String jsonString, UserAdvanceConfiguration userAdvanceConfiguration) throws JsonProcessingException {
+            this.className = className;
+            this.userAdvanceConfiguration = userAdvanceConfiguration;
+            this.jsonNode = ANALYSER.readTree(jsonString);
+
+            if (!this.jsonNode.isObject()) {
+                throw new RuntimeException("Only support Object JSON tree analysis");
+            }
+        }
+
+        public String getClassName() {
+            return className;
+        }
+
+        public JsonNode getJsonNode() {
+            return jsonNode;
+        }
+
+        public UserAdvanceConfiguration getUserAdvanceConfiguration() {
+            return userAdvanceConfiguration;
+        }
     }
 }

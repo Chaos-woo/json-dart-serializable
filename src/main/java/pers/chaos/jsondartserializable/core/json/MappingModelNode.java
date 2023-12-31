@@ -556,6 +556,25 @@ public class MappingModelNode {
         }
     }
 
+    public MappingModelNode findChildByPath(String path) {
+        return findChildByPathRecursive(this, path.split("\\."), 0);
+    }
+
+    private MappingModelNode findChildByPathRecursive(MappingModelNode node, String[] path, int index) {
+        if (index >= path.length) {
+            return node;
+        }
+
+        String nodeName = path[index];
+        List<MappingModelNode> children = node.getChildModelNodes();
+        for (MappingModelNode child : children) {
+            if (child.getJsonFieldName().equals(nodeName)) {
+                return findChildByPathRecursive(child, path, index + 1);
+            }
+        }
+
+        return null;
+    }
 
     public String getJsonFieldName() {
         return jsonFieldName;
