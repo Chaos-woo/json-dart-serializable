@@ -181,6 +181,10 @@ public class MappingModelNode {
     };
 
     private boolean tryParseTextDate(String text) {
+        if (!isRoot && (this.jsonFieldName).toLowerCase().contains("time")) {
+            return true;
+        }
+
         try {
             DateUtils.parseDate(text,  DATE_FORMATS);
             return true;
