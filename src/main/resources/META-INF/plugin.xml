@@ -71,7 +71,7 @@
     </extensions>
 
     <actions>
-        <action id="json_convert_dart_main_action" class="pers.chaos.jsondartserializable.actions.CreateJsonConvertDartClassAction"
+        <action id="json_convert_dart_main_action" class="pers.chaos.jsondartserializable.actions.MainAction"
                 text="Json to Dart Convertor" description="Json2Dart" icon="AllIcons.FileTypes.Json">
             <add-to-group group-id="NewGroup" anchor="last"/>
         </action>
