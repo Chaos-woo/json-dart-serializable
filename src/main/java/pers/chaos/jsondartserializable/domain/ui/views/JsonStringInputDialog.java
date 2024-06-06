@@ -31,8 +31,6 @@ public class JsonStringInputDialog extends JDialog {
     private static final Logger log = LoggerFactory.getLogger(JsonStringInputDialog.class);
     private final AnActionEvent anActionEvent;
 
-//    private JsonDartAnalysis jsonAnalysis;
-
     private ModelNodeMgr mgr;
 
     private JPanel contentPane;
@@ -100,15 +98,6 @@ public class JsonStringInputDialog extends JDialog {
         textFieldClassName.addKeyListener(new KeyListener() {
             @Override
             public void keyReleased(KeyEvent e) {
-//                if (Objects.nonNull(jsonAnalysis)) {
-//                    JTextField textField = (JTextField) e.getSource();
-//                    String newRootClassName = textField.getText();
-//                    MappingModelNode rootMappingModelNode = jsonAnalysis.getRootMappingModel();
-//                    rootMappingModelNode.setClassName(newRootClassName);
-//                    rootMappingModelNode.setJsonFieldName(newRootClassName);
-//                    rootMappingModelNode.setDartFileName(DartClassFileUtils.getDartFileNameByClassName(newRootClassName));
-//                }
-
                 if (Objects.nonNull(mgr)) {
                     String rootClassName = ((JTextField) e.getSource()).getText();
                     mgr.setRootClassName(rootClassName);
@@ -133,12 +122,6 @@ public class JsonStringInputDialog extends JDialog {
         textFieldClassDescription.addKeyListener(new KeyListener() {
             @Override
             public void keyReleased(KeyEvent e) {
-//                if (Objects.nonNull(jsonAnalysis)) {
-//                    JTextField textField = (JTextField) e.getSource();
-//                    String newRootModelDescription = textField.getText();
-//                    jsonAnalysis.getRootMappingModel().setDescription(newRootModelDescription);
-//                }
-
                 if (Objects.nonNull(mgr)) {
                     String rootClassRemark = ((JTextField) e.getSource()).getText();
                     mgr.setRootClassRemark(rootClassRemark);
@@ -157,52 +140,6 @@ public class JsonStringInputDialog extends JDialog {
     }
 
     private void onPreviewEdit() throws JsonProcessingException {
-//        if (Objects.isNull(this.jsonAnalysis)) {
-//            JsonDartAnalysis jsonAnalysis = inputJsonStringAnalysis();
-//            if (Objects.isNull(jsonAnalysis)) {
-//                return;
-//            } else {
-//                this.jsonAnalysis = jsonAnalysis;
-//            }
-//        }
-
-        // 已经存在解析过的根节点时，保留一些用户之前已填写的数据，
-        // 删除JSON中不存在的字段，增加JSON中新增的字段解析模型
-//        JsonAnalyser.AnalysisRebuildData simpleAnalysisData = getSimpleInputJsonAnalysisData();
-//        if (Objects.isNull(simpleAnalysisData)) {
-//            return;
-//        }
-//        this.jsonAnalysis.rebuildRootMappingModel(simpleAnalysisData);
-
-//        boolean isRootObjectNodeHasNoChildNodes = this.jsonAnalysis.getRootMappingModel().getChildModelNodes().stream()
-//                .allMatch(MappingModelNode::isBasisJsonType);
-//
-//        if (isRootObjectNodeHasNoChildNodes) {
-//            // 根节点无对象/对象数组子节点时直接展示表格形式的属性表
-//            ModelNodeTableDialog dialog =
-//                    new ModelNodeTableDialog(this.jsonAnalysis.getRootMappingModel());
-//            dialog.pack();
-//            dialog.setTitle("JSON mapping Dart objects table");
-//            Point location = this.getLocation();
-//            double movingX = location.getX() - ((double) UiConst.AnalysisDialog.width / 4);
-//            if (movingX < 0) {
-//                dialog.setLocation(location);
-//            } else {
-//                dialog.setLocation((int) movingX, (int) location.getLocation().getY());
-//            }
-//            dialog.setMinimumSize(new Dimension(UiConst.AnalysisDialog.width, UiConst.AnalysisDialog.height));
-//            dialog.setVisible(true);
-//        } else {
-//            // 根节点存在对象/对象数组子节点时展示根节点下的对象树
-//            JsonObjectTreeDialog dialog = new JsonObjectTreeDialog(this.jsonAnalysis);
-//            dialog.pack();
-//            dialog.setTitle("Root mapping objects tree");
-//            dialog.setLocation(this.getLocation());
-//            dialog.setMinimumSize(new Dimension(400, 500));
-//            dialog.setVisible(true);
-//        }
-
-
         if (Objects.isNull(mgr)) {
             ModelNodeMgr nodeMgr = getModelNodeMgrByUserJsonString();
             if (Objects.isNull(nodeMgr)) {
@@ -295,51 +232,6 @@ public class JsonStringInputDialog extends JDialog {
         }
     }
 
-//    private JsonAnalyser.AnalysisRebuildData  getSimpleInputJsonAnalysisData() {
-//        String userInputRootClassName = textFieldClassName.getText().trim();
-//        String jsonString = textAreaJsonString.getText().trim();
-//        if (StringUtil.isEmpty(userInputRootClassName) || StringUtil.isEmpty(jsonString)) {
-//            showErrorLabel("Empty root class name or invalid JSON string!!");
-//        }
-//
-//        ModelGenUserConfig userConfig = new ModelGenUserConfig();
-//        userConfig.setEnableRealtimeJsonDefaultValueAnalysis(realtimeDefaultValCheckBox.isSelected());
-//        userConfig.setEnableAllClassGeneratedIntoSingleFile(allClassIntoSingleCheckBox.isSelected());
-//
-//        try {
-//            return new JsonAnalyser.AnalysisRebuildData(userInputRootClassName, jsonString, userConfig);
-//        } catch (Exception e) {
-//            System.out.println(ExceptionUtils.getStackTrace(e));
-//            showJsonFormatErrorLabel();
-//            return null;
-//        }
-//    }
-
-//    private JsonDartAnalysis inputJsonStringAnalysis() {
-//        hideErrorLabel();
-//
-//        String userInputRootClassName = textFieldClassName.getText().trim();
-//        String jsonString = textAreaJsonString.getText().trim();
-//        if (StringUtil.isEmpty(userInputRootClassName) || StringUtil.isEmpty(jsonString)) {
-//            showErrorLabel("Empty root class name or invalid JSON string!!");
-//        }
-//
-//        ModelGenUserConfig userConfig = new ModelGenUserConfig();
-//        userConfig.setEnableRealtimeJsonDefaultValueAnalysis(realtimeDefaultValCheckBox.isSelected());
-//        userConfig.setEnableAllClassGeneratedIntoSingleFile(allClassIntoSingleCheckBox.isSelected());
-//
-//        JsonDartAnalysis jsonAnalysis;
-//        try {
-//            // 分析JSON并生成模型
-//            jsonAnalysis = JsonAnalyser.analysis(userInputRootClassName, jsonString, userConfig);
-//        } catch (Exception e) {
-//            System.out.println(ExceptionUtils.getStackTrace(e));
-//            showJsonFormatErrorLabel();
-//            return null;
-//        }
-//        return jsonAnalysis;
-//    }
-
     private void onFormat() {
         hideErrorLabel();
         try {
@@ -370,59 +262,6 @@ public class JsonStringInputDialog extends JDialog {
     }
 
     private void onGenerate() throws JsonProcessingException {
-//        if (Objects.isNull(this.jsonAnalysis)) {
-//            JsonDartAnalysis jsonAnalysis = inputJsonStringAnalysis();
-//            if (Objects.isNull(jsonAnalysis)) {
-//                return;
-//            } else {
-//                this.jsonAnalysis = jsonAnalysis;
-//            }
-//        }
-//
-//        // 已经存在解析过的根节点时，保留一些用户之前已填写的数据，
-//        // 删除JSON中不存在的字段，增加JSON中新增的字段解析模型
-//        JsonAnalyser.AnalysisRebuildData simpleAnalysisData = getSimpleInputJsonAnalysisData();
-//        if (Objects.isNull(simpleAnalysisData)) {
-//            return;
-//        }
-//        this.jsonAnalysis.rebuildRootMappingModel(simpleAnalysisData);
-//
-//        String classDesc = textFieldClassDescription.getText();
-//        MappingModelNode rootMappingModelNode = this.jsonAnalysis.getRootMappingModel();
-//        if (StringUtils.isNoneBlank(classDesc)) {
-//            rootMappingModelNode.setDescription(classDesc);
-//        }
-//
-//        Project project = anActionEvent.getProject();
-//        if (Objects.isNull(project)) {
-//            return;
-//        }
-//
-//        // 获取用户当前focus的文件
-//        VirtualFile parent = anActionEvent.getData(CommonDataKeys.VIRTUAL_FILE);
-//        if (parent != null && parent.isDirectory()) {
-//            VirtualFile child = parent.findChild(rootMappingModelNode.getDartFileName() + ".dart");
-//            if (Objects.nonNull(child)) {
-//                Messages.showErrorDialog("Exist " +
-//                        rootMappingModelNode.getDartFileName()
-//                                + ".dart file. Please edit root dart class name 『 "
-//                                + rootMappingModelNode.getClassName() + " 』",
-//                        "Json to Dart convert fail!!");
-//                return;
-//            }
-//        }
-//
-//        try {
-//            // 生成dart文件
-//            outputDartClassModelFile(parent, project, this.jsonAnalysis);
-//        } catch (IOException e) {
-//            showErrorLabel("Json to Dart convert fail!!");
-//            NotificationUtil.show(this.anActionEvent.getProject(), "Json to Dart convert fail.", "Check JSON data string, please.", NotificationType.WARNING);
-//            return;
-//        }
-//        dispose();
-
-
         if (Objects.isNull(mgr)) {
             ModelNodeMgr nodeMgr = getModelNodeMgrByUserJsonString();
             if (Objects.isNull(nodeMgr)) {
@@ -451,7 +290,7 @@ public class JsonStringInputDialog extends JDialog {
             VirtualFile child = parent.findChild(rootNode.getTargetMeta().getFilename() + ".dart");
             if (Objects.nonNull(child)) {
                 Messages.showErrorDialog("Exist " + rootNode.getTargetMeta().getFilename() + ".dart file. Please edit root dart class name 『 "
-                        + rootNode.getTargetMeta().getClassName() + "』", "Json to Dart convert fail!!");
+                        + rootNode.getTargetMeta().getClassName() + "』", "Json to Dart Convert Fail!!");
                 return;
             }
         }

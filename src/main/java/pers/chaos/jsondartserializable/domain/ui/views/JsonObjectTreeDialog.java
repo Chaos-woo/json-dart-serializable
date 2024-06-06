@@ -21,7 +21,7 @@ public class JsonObjectTreeDialog extends JDialog {
 
     private JPanel contentPane;
     private JButton buttonOK;
-    private JTree jsonTree;
+    private JTree modelNodeTree;
 
     public JsonObjectTreeDialog(ModelNodeMgr mgr) {
         this.mgr = mgr;
@@ -51,38 +51,44 @@ public class JsonObjectTreeDialog extends JDialog {
         );
 
         // 构建Json对象树
-        DefaultMutableTreeNode root = buildJsonObjectTreeNode();
-        jsonTree.setModel(new DefaultTreeModel(root));
+        DefaultMutableTreeNode treeRootNode = buildJsonObjectTreeNode();
+        modelNodeTree.setModel(new DefaultTreeModel(treeRootNode));
 
         // 关闭双击展开或收缩节点
-        jsonTree.setToggleClickCount(0);
+        modelNodeTree.setToggleClickCount(0);
 
         // 设置节点展示文案和图标
-        jsonTree.setCellRenderer(new TreeNodeCellRenderer());
+        modelNodeTree.setCellRenderer(new TreeNodeCellRenderer());
 
-        jsonTree.addMouseListener(new MouseAdapter() {
+        modelNodeTree.addMouseListener(new MouseAdapter() {
+            private long lastClickTime = 0;
+
             public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2) {
-                    // 双击打开属性表格弹窗
-                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) jsonTree.getLastSelectedPathComponent();
-                    if (node == null) {
-                        return;
-                    }
+                long currentTime = System.currentTimeMillis();
+                if (e.getClickCount() == 2 && e.getButton() == MouseEvent.BUTTON1) {
+                    if (currentTime - lastClickTime < 500) { // 500 毫秒内的两次点击被视为双击
+                        // 双击打开属性表格弹窗
+                        DefaultMutableTreeNode node = (DefaultMutableTreeNode) modelNodeTree.getLastSelectedPathComponent();
+                        if (node == null) {
+                            return;
+                        }
 
-                    Object userObject = node.getUserObject();
-                    openModelNodePropertiesTableDialog(((ModelNodeTreeVO) userObject).getNode());
+                        Object userObject = node.getUserObject();
+                        openModelNodePropertiesTableDialog(((ModelNodeTreeVO) userObject).getNode());
+                    }
                 }
+                lastClickTime = currentTime;
             }
         });
     }
 
     private void openModelNodePropertiesTableDialog(ModelNode modelNode) {
-        ModelNode effectiveModel = modelNode;
+        ModelNode realModelNode = modelNode;
         if (ModelNodeDataType.OBJECT_ARRAY == modelNode.getMeta().getModelNodeDataType()) {
-            effectiveModel = modelNode.getChildNodes().get(0);
+            realModelNode = modelNode.getChildNodes().get(0);
         }
 
-        ModelNodeTableDialog dialog = new ModelNodeTableDialog(effectiveModel);
+        ModelNodeTableDialog dialog = new ModelNodeTableDialog(realModelNode);
         dialog.pack();
         dialog.setTitle("Json Model-Dart Property Table");
         Point location = this.getLocation();

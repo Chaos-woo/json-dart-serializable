@@ -61,7 +61,7 @@
             <properties/>
             <border type="none"/>
             <children>
-              <component id="6b854" class="javax.swing.JTree" binding="jsonTree">
+              <component id="6b854" class="javax.swing.JTree" binding="modelNodeTree">
                 <constraints/>
                 <properties>
                   <toolTipText value="Double click to edit it"/>

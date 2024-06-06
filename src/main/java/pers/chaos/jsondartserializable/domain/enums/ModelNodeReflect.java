@@ -34,12 +34,12 @@ public interface ModelNodeReflect {
 
         private final String property;
         private final int columnIndex;
-        private final String column;
+        private final String columnName;
 
-        Key(String property, int columnIndex, String column) {
+        Key(String property, int columnIndex, String columnName) {
             this.property = property;
             this.columnIndex = columnIndex;
-            this.column = column;
+            this.columnName = columnName;
         }
 
         public static Key[] sortedByColumnIndexKeys() {

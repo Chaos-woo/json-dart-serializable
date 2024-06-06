@@ -19,7 +19,6 @@ public class TreeNodeCellRenderer extends DefaultTreeCellRenderer {
         int scale = 20;
         if (ModelNodeDataType.OBJECT_ARRAY == ((ModelNodeTreeVO) node.getUserObject()).getNode().getMeta().getModelNodeDataType()) {
             imgPath = "assets/object_array.png";
-            scale = 18;
         }
 
         JLabel label = new JLabel();

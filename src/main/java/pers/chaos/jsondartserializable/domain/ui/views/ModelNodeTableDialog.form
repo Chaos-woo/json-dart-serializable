@@ -72,7 +72,7 @@
             </properties>
             <border type="none"/>
             <children>
-              <component id="3a7c7" class="javax.swing.JTable" binding="jsonAnalysisTable">
+              <component id="3a7c7" class="javax.swing.JTable" binding="modelNodeTable">
                 <constraints/>
                 <properties/>
               </component>
