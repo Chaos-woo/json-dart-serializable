@@ -61,17 +61,23 @@ public class JsonObjectTreeDialog extends JDialog {
         modelNodeTree.setCellRenderer(new TreeNodeCellRenderer());
 
         modelNodeTree.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) {
-                if (e.getClickCount() == 2) {
-                    // 双击打开属性表格弹窗
-                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) modelNodeTree.getLastSelectedPathComponent();
-                    if (node == null) {
-                        return;
-                    }
+            private long lastClickTime = 0;
 
-                    Object userObject = node.getUserObject();
-                    openModelNodePropertiesTableDialog(((ModelNodeTreeVO) userObject).getNode());
+            public void mouseClicked(MouseEvent e) {
+                long currentTime = System.currentTimeMillis();
+                if (e.getClickCount() == 2 && e.getButton() == MouseEvent.BUTTON1) {
+                    if (currentTime - lastClickTime < 500) { // 500 毫秒内的两次点击被视为双击
+                        // 双击打开属性表格弹窗
+                        DefaultMutableTreeNode node = (DefaultMutableTreeNode) modelNodeTree.getLastSelectedPathComponent();
+                        if (node == null) {
+                            return;
+                        }
+
+                        Object userObject = node.getUserObject();
+                        openModelNodePropertiesTableDialog(((ModelNodeTreeVO) userObject).getNode());
+                    }
                 }
+                lastClickTime = currentTime;
             }
         });
     }

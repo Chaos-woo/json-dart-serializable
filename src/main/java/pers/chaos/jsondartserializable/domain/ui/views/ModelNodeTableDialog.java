@@ -6,12 +6,15 @@ import pers.chaos.jsondartserializable.domain.enums.ModelNodeReflect;
 import pers.chaos.jsondartserializable.domain.models.ModelNode;
 import pers.chaos.jsondartserializable.domain.ui.components.DartDataTypeComboBox;
 import pers.chaos.jsondartserializable.domain.ui.components.DartPropertyRequiredCheckBox;
+import pers.chaos.jsondartserializable.domain.ui.models.UiConst;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import java.awt.*;
 import java.awt.event.*;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class ModelNodeTableDialog extends JDialog {
     private final ModelNode node;
@@ -64,7 +67,7 @@ public class ModelNodeTableDialog extends JDialog {
         tableModel = (DefaultTableModel) modelNodeTable.getModel();
         // 设置列标题
         Object[] columnTitle = Arrays.stream(this.tablesColumnKeys)
-                .map(ModelNodeReflect.Key::getColumn)
+                .map(ModelNodeReflect.Key::getColumnName)
                 .toArray();
         tableModel.setColumnIdentifiers(columnTitle);
 
@@ -92,11 +95,61 @@ public class ModelNodeTableDialog extends JDialog {
         labelClassTitle.setText(String.format("Confirm 『%s』 Model Analysis", node.getTargetMeta().getClassName()));
 
         modelNodeTable.addMouseListener(new MouseAdapter() {
+            private long lastClickTime = 0;
+
             @Override
             public void mouseClicked(MouseEvent e) {
-                super.mouseClicked(e);
+                long currentTime = System.currentTimeMillis();
+                if (e.getClickCount() == 2 && e.getButton() == MouseEvent.BUTTON1) {
+                    if (currentTime - lastClickTime < 500) { // 500 毫秒内的两次点击被视为双击
+                        // 双击打开属性表格弹窗
+                        int row = modelNodeTable.rowAtPoint(e.getPoint());
+                        int column = modelNodeTable.columnAtPoint(e.getPoint());
+
+                        if (ModelNodeReflect.Key.M_JSON_FIELD_NAME.equalsColumn(column)) {
+                            DartDataType dartDataType = (DartDataType) tableModelData[row][ModelNodeReflect.Key.TM_DART_DATA_TYPE.getColumnIndex()];
+                            if (DartDataType.OBJECT == dartDataType) {
+                                String jsonFieldName = (String) modelNodeTable.getValueAt(row, column);
+                                ModelNode filteredModelNode = node.getChildNodes().stream()
+                                        .filter(modelNode -> Objects.equals(modelNode.getMeta().getJsonFieldName(), jsonFieldName))
+                                        .findFirst()
+                                        .orElse(null);
+                                if (Objects.isNull(filteredModelNode)) {
+                                    super.mouseClicked(e);
+                                } else {
+                                    openModelNodePropertiesTableDialog(filteredModelNode);
+                                }
+                            }
+                        } else {
+                            super.mouseClicked(e);
+                        }
+                    }
+                } else {
+                    super.mouseClicked(e);
+                }
+                lastClickTime = currentTime;
             }
         });
+    }
+
+    private void openModelNodePropertiesTableDialog(ModelNode modelNode) {
+        ModelNode realModelNode = modelNode;
+        if (ModelNodeDataType.OBJECT_ARRAY == modelNode.getMeta().getModelNodeDataType()) {
+            realModelNode = modelNode.getChildNodes().get(0);
+        }
+
+        ModelNodeTableDialog dialog = new ModelNodeTableDialog(realModelNode);
+        dialog.pack();
+        dialog.setTitle("Child Model-Dart Property Table");
+        Point location = this.getLocation();
+        double movingX = location.getX() - ((double) UiConst.AnalysisDialog.width / 4);
+        if (movingX < 0) {
+            dialog.setLocation(location);
+        } else {
+            dialog.setLocation((int) movingX, (int) location.getLocation().getY());
+        }
+        dialog.setMinimumSize(new Dimension(UiConst.AnalysisDialog.width, UiConst.AnalysisDialog.height));
+        dialog.setVisible(true);
     }
 
     private Object[][] getModelNodeTableModelData() {
