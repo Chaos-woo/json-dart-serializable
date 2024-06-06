@@ -9,9 +9,7 @@ import pers.chaos.jsondartserializable.domain.ui.components.DartPropertyRequired
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import java.awt.event.KeyEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 import java.util.Arrays;
 import java.util.List;
 
@@ -21,7 +19,7 @@ public class ModelNodeTableDialog extends JDialog {
 
     private JPanel contentPane;
     private JButton buttonConfirm;
-    private JTable jsonAnalysisTable;
+    private JTable modelNodeTable;
     private JLabel labelClassTitle;
 
     private boolean[][] editableCellRecords;
@@ -62,8 +60,8 @@ public class ModelNodeTableDialog extends JDialog {
 
         };
 
-        jsonAnalysisTable.setModel(tableModel);
-        tableModel = (DefaultTableModel) jsonAnalysisTable.getModel();
+        modelNodeTable.setModel(tableModel);
+        tableModel = (DefaultTableModel) modelNodeTable.getModel();
         // 设置列标题
         Object[] columnTitle = Arrays.stream(this.tablesColumnKeys)
                 .map(ModelNodeReflect.Key::getColumn)
@@ -71,18 +69,18 @@ public class ModelNodeTableDialog extends JDialog {
         tableModel.setColumnIdentifiers(columnTitle);
 
         // 设置Dart数据类型ComboBox渲染类
-        jsonAnalysisTable.getColumnModel()
+        modelNodeTable.getColumnModel()
                 .getColumn(ModelNodeReflect.Key.TM_DART_DATA_TYPE.getColumnIndex())
                 .setCellEditor(new DartDataTypeComboBox.DartDataTypeComboBoxCellEditor());
-        jsonAnalysisTable.getColumnModel()
+        modelNodeTable.getColumnModel()
                 .getColumn(ModelNodeReflect.Key.TM_DART_DATA_TYPE.getColumnIndex())
                 .setCellRenderer(new DartDataTypeComboBox.DartDataTypeComboBoxRenderer());
 
         // 设置Dart是否为必填字段CheckBox渲染类
-        jsonAnalysisTable.getColumnModel()
+        modelNodeTable.getColumnModel()
                 .getColumn(ModelNodeReflect.Key.TM_DART_PROPERTY_REQUIRED.getColumnIndex())
                 .setCellEditor(new DartPropertyRequiredCheckBox.DartPropertyRequiredCheckBoxCellEditor());
-        jsonAnalysisTable.getColumnModel()
+        modelNodeTable.getColumnModel()
                 .getColumn(ModelNodeReflect.Key.TM_DART_PROPERTY_REQUIRED.getColumnIndex())
                 .setCellRenderer(new DartPropertyRequiredCheckBox.DartPropertyRequiredCheckBoxRenderer());
 
@@ -92,6 +90,13 @@ public class ModelNodeTableDialog extends JDialog {
         }
 
         labelClassTitle.setText(String.format("Confirm 『%s』 Model Analysis", node.getTargetMeta().getClassName()));
+
+        modelNodeTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+            }
+        });
     }
 
     private Object[][] getModelNodeTableModelData() {
@@ -123,7 +128,7 @@ public class ModelNodeTableDialog extends JDialog {
                 }
 
                 ModelNodeReflect.Key key = tablesColumnKeys[j];
-                Object value = jsonAnalysisTable.getModel().getValueAt(i, j);
+                Object value = modelNodeTable.getModel().getValueAt(i, j);
                 key.reflectWrite(childChildNode, value);
                 childChildNode.handleMarkJsonKeyAnno();
             }

@@ -78,11 +78,22 @@ public class ModelNode {
 
     public List<ModelNode> createChildNodes() {
         List<ModelNode> childNodes = new ArrayList<>();
-        jsonNode.fieldNames().forEachRemaining(name -> {
-            JsonNode childJsonNode = jsonNode.get(name);
-            ModelNode childNode = createChildNode(childJsonNode, this, name);
+        ModelNodeDataType nodeDataType = meta.getModelNodeDataType();
+        if (ModelNodeDataType.OBJECT_ARRAY == nodeDataType) {
+            JsonNode firstJsonNode = jsonNode.get(0);
+            ModelNode childNode = createChildNode(firstJsonNode, this, meta.getJsonFieldName());
             childNodes.add(childNode);
-        });
+        } else if (ModelNodeDataType.BASIS_DATA_ARRAY == nodeDataType) {
+            JsonNode firstJsonNode = jsonNode.get(0);
+            ModelNode childNode = createChildNode(firstJsonNode, this, "NORMAL_FIELD_ARRAY");
+            childNodes.add(childNode);
+        } else {
+            jsonNode.fieldNames().forEachRemaining(name -> {
+                JsonNode childJsonNode = jsonNode.get(name);
+                ModelNode childNode = createChildNode(childJsonNode, this, name);
+                childNodes.add(childNode);
+            });
+        }
         return childNodes;
     }
 
