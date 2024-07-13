@@ -12,14 +12,14 @@ import com.intellij.ui.JBColor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pers.chaos.jsondartserializable.domain.models.forgenerated.ModelGenUserOption;
+import pers.chaos.jsondartserializable.domain.models.node.ModelNode;
 import pers.chaos.jsondartserializable.domain.models.nodedata.ModelNodeMeta;
 import pers.chaos.jsondartserializable.domain.models.nodedata.ModelOutputMeta;
-import pers.chaos.jsondartserializable.domain.models.node.ModelNode;
 import pers.chaos.jsondartserializable.domain.service.DartGenOption;
-import pers.chaos.jsondartserializable.domain.util.JsonNodeUtil;
 import pers.chaos.jsondartserializable.domain.service.ModelNodesMgr;
-import pers.chaos.jsondartserializable.domain.ui.models.UserInputData;
 import pers.chaos.jsondartserializable.domain.ui.models.UiConst;
+import pers.chaos.jsondartserializable.domain.ui.models.UserInputData;
+import pers.chaos.jsondartserializable.domain.util.JsonNodeUtil;
 import pers.chaos.jsondartserializable.domain.util.NotificationUtil;
 
 import javax.swing.*;
@@ -145,15 +145,16 @@ public class JsonStringInputDialog extends JDialog {
         syntaxFaq.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                openFaqDialog();
+                openGuideDialog();
             }
         });
     }
 
-    private void openFaqDialog() {
+    private void openGuideDialog() {
         String link = "https://github.com/Chaos-woo/json-dart-serializable";
         CommonDialog alertDialog = new CommonDialog(
-                "Please copy the URI: " + link + " and open it or click OK button to skip github to read the JSON extension syntax guide, " +
+                "\n\nPlease copy the URI: " + link + " and open it " +
+                        "or click OK button to skip github to read the JSON extension syntax guide, " +
                         "but be aware that the attempt to open it may fail due to security reasons.", () -> {
             try {
                 // 检查Desktop类是否支持打开URI
@@ -168,15 +169,18 @@ public class JsonStringInputDialog extends JDialog {
                 // do nothing
             }
         });
-        alertDialog.setTitle("JSON extension syntax guide");
+        alertDialog.setTitle("Tip: How to use JSON extension syntax?");
         Point location = getLocation();
-        double movingX = location.getX() + ((double) UiConst.AnalysisDialog.width / 4);
-        if (movingX < 0) {
+        Dimension size = getSize();
+        double movingX = location.getX() + (size.getWidth() / 2) - ((double) 450 / 2);
+        double movingY = location.getY() + (size.getHeight() / 2) - ((double) 300 / 2);
+        if (movingX < 0 || movingY < 0) {
             alertDialog.setLocation(location);
         } else {
-            alertDialog.setLocation((int) movingX, (int) location.getLocation().getY());
+            alertDialog.setLocation((int) movingX, (int) movingY);
         }
-        alertDialog.setMinimumSize(new Dimension(400, 500));
+        alertDialog.setMinimumSize(new Dimension(450, 300));
+        alertDialog.setResizable(false);
         alertDialog.pack();
         alertDialog.setVisible(true);
     }
@@ -210,11 +214,13 @@ public class JsonStringInputDialog extends JDialog {
             dialog.pack();
             dialog.setTitle("Json Model-Dart Property Table");
             Point location = getLocation();
-            double movingX = location.getX() - ((double) UiConst.AnalysisDialog.width / 4);
-            if (movingX < 0) {
+            Dimension size = getSize();
+            double movingX = location.getX() + (size.getWidth() / 2) - ((double) UiConst.AnalysisDialog.width / 2);
+            double movingY = location.getY() + (size.getHeight() / 2) - ((double) UiConst.AnalysisDialog.height / 2);
+            if (movingX < 0 || movingY < 0) {
                 dialog.setLocation(location);
             } else {
-                dialog.setLocation((int) movingX, (int) location.getLocation().getY());
+                dialog.setLocation((int) movingX, (int) movingY);
             }
             dialog.setMinimumSize(new Dimension(UiConst.AnalysisDialog.width, UiConst.AnalysisDialog.height));
             dialog.setVisible(true);
@@ -224,11 +230,13 @@ public class JsonStringInputDialog extends JDialog {
             dialog.pack();
             dialog.setTitle("Root Model Tree");
             Point location = getLocation();
-            double movingX = location.getX() + ((double) UiConst.AnalysisDialog.width / 4);
-            if (movingX < 0) {
+            Dimension size = getSize();
+            double movingX = location.getX() + (size.getWidth() / 2) - ((double) 400 / 2);
+            double movingY = location.getY() + (size.getHeight() / 2) - ((double) 500 / 2);
+            if (movingX < 0 || movingY < 0) {
                 dialog.setLocation(location);
             } else {
-                dialog.setLocation((int) movingX, (int) location.getLocation().getY());
+                dialog.setLocation((int) movingX, (int) movingY);
             }
             dialog.setMinimumSize(new Dimension(400, 500));
             dialog.setVisible(true);

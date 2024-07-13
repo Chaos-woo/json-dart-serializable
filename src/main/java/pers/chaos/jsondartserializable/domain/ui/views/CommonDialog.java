@@ -1,6 +1,7 @@
 package pers.chaos.jsondartserializable.domain.ui.views;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -14,7 +15,8 @@ public class CommonDialog extends JDialog {
     private final Runnable onOk;
 
     public CommonDialog(String content, Runnable onOk) {
-        contentLabel.setText(content);
+        contentLabel.setSize(400, 0);
+        setJLabelAutoText(contentLabel, content);
         setContentPane(contentPane);
         setModal(true);
         getRootPane().setDefaultButton(buttonOK);
@@ -35,6 +37,30 @@ public class CommonDialog extends JDialog {
         contentPane.registerKeyboardAction(e -> onCancel(), KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
 
         this.onOk = onOk;
+    }
+
+    void setJLabelAutoText(JLabel jLabel, String longString) {
+        StringBuilder builder = new StringBuilder("<html>");
+        char[] chars = longString.toCharArray();
+        FontMetrics fontMetrics = jLabel.getFontMetrics(jLabel.getFont());
+        int start = 0;
+        int len = 0;
+        while (start + len < longString.length()) {
+            while (true) {
+                len++;
+                if (start + len > longString.length())break;
+                if (fontMetrics.charsWidth(chars, start, len)
+                        > jLabel.getWidth()) {
+                    break;
+                }
+            }
+            builder.append(chars, start, len-1).append("<br/>");
+            start = start + len - 1;
+            len = 0;
+        }
+        builder.append(chars, start, longString.length()-start);
+        builder.append("</html>");
+        jLabel.setText(builder.toString());
     }
 
     private void onOK() {

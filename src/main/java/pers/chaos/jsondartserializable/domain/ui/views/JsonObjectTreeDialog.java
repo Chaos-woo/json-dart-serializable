@@ -92,11 +92,13 @@ public class JsonObjectTreeDialog extends JDialog {
         dialog.pack();
         dialog.setTitle("Json Model-Dart Property Table");
         Point location = this.getLocation();
-        double movingX = location.getX() - ((double) UiConst.AnalysisDialog.width / 4);
-        if (movingX < 0) {
+        Dimension size = getSize();
+        double movingX = location.getX() + (size.getWidth() / 2) - ((double) UiConst.AnalysisDialog.width / 2);
+        double movingY = location.getY() + (size.getHeight() / 2) - ((double) UiConst.AnalysisDialog.height / 2);
+        if (movingX < 0 || movingY < 0) {
             dialog.setLocation(location);
         } else {
-            dialog.setLocation((int) movingX, (int) location.getLocation().getY());
+            dialog.setLocation((int) movingX, (int) movingY);
         }
         dialog.setMinimumSize(new Dimension(UiConst.AnalysisDialog.width, UiConst.AnalysisDialog.height));
         dialog.setVisible(true);
