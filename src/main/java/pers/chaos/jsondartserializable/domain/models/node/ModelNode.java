@@ -171,7 +171,7 @@ public class ModelNode {
                         throw new RuntimeException("Not support analysis array nesting");
                     } else {
                         if (useJsonSyntaxMode) {
-                            dataType = ModelDataDefinition.findBasisArrayDataType(jsonNode);
+                            dataType = ModelDataDefinition.findBasisArrayDataType(firstChildJsonNode);
                             if (DartDataType.UNKNOWN.is(dataType)) {
                                 dataType = getDartDataType(firstChildJsonNode, nodeMeta);
                             }
