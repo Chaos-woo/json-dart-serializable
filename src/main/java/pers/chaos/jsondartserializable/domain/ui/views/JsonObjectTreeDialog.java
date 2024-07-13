@@ -2,10 +2,10 @@ package pers.chaos.jsondartserializable.domain.ui.views;
 
 import org.apache.commons.collections.CollectionUtils;
 import pers.chaos.jsondartserializable.domain.enums.ModelNodeDataType;
-import pers.chaos.jsondartserializable.domain.models.ModelNode;
-import pers.chaos.jsondartserializable.domain.models.ModelNodeMgr;
+import pers.chaos.jsondartserializable.domain.models.node.ModelNode;
+import pers.chaos.jsondartserializable.domain.service.ModelNodesMgr;
 import pers.chaos.jsondartserializable.domain.ui.components.TreeNodeCellRenderer;
-import pers.chaos.jsondartserializable.domain.ui.models.ModelNodeTreeVO;
+import pers.chaos.jsondartserializable.domain.ui.models.ModelTreeNode;
 import pers.chaos.jsondartserializable.domain.ui.models.UiConst;
 
 import javax.swing.*;
@@ -17,13 +17,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class JsonObjectTreeDialog extends JDialog {
-    private final ModelNodeMgr mgr;
+    private final ModelNodesMgr mgr;
 
     private JPanel contentPane;
     private JButton buttonOK;
     private JTree modelNodeTree;
 
-    public JsonObjectTreeDialog(ModelNodeMgr mgr) {
+    public JsonObjectTreeDialog(ModelNodesMgr mgr) {
         this.mgr = mgr;
 
         setContentPane(contentPane);
@@ -74,7 +74,7 @@ public class JsonObjectTreeDialog extends JDialog {
                         }
 
                         Object userObject = node.getUserObject();
-                        openModelNodePropertiesTableDialog(((ModelNodeTreeVO) userObject).getNode());
+                        openModelNodePropertiesTableDialog(((ModelTreeNode) userObject).getNode());
                     }
                 }
                 lastClickTime = currentTime;
@@ -84,7 +84,7 @@ public class JsonObjectTreeDialog extends JDialog {
 
     private void openModelNodePropertiesTableDialog(ModelNode modelNode) {
         ModelNode realModelNode = modelNode;
-        if (ModelNodeDataType.OBJECT_ARRAY == modelNode.getMeta().getModelNodeDataType()) {
+        if (ModelNodeDataType.OBJECT_ARRAY == modelNode.getNodeMeta().getModelNodeDataType()) {
             realModelNode = modelNode.getChildNodes().get(0);
         }
 
@@ -104,7 +104,7 @@ public class JsonObjectTreeDialog extends JDialog {
 
     private DefaultMutableTreeNode buildJsonObjectTreeNode() {
         DefaultMutableTreeNode rootTreeNode = new DefaultMutableTreeNode();
-        ModelNodeTreeVO treeVO = new ModelNodeTreeVO(mgr.getRootNode());
+        ModelTreeNode treeVO = new ModelTreeNode(mgr.getRootNode());
         rootTreeNode.setUserObject(treeVO);
 
         recursiveBuildJsonChildTreeNode(rootTreeNode, mgr.getRootNode().getChildNodes());
@@ -118,12 +118,12 @@ public class JsonObjectTreeDialog extends JDialog {
         }
 
         List<ModelNode> objectChildNodes = childNodes.stream()
-                .filter(node -> !node.getMeta().isBasisModelNodeDataType())
+                .filter(node -> !node.getNodeMeta().isBasisModelNodeDataType())
                 .collect(Collectors.toList());
 
         for (ModelNode objectNode : objectChildNodes) {
             DefaultMutableTreeNode node = new DefaultMutableTreeNode();
-            ModelNodeTreeVO treeVO = new ModelNodeTreeVO(objectNode);
+            ModelTreeNode treeVO = new ModelTreeNode(objectNode);
             node.setUserObject(treeVO);
 
             parent.add(node);

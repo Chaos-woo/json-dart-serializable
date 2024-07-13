@@ -23,4 +23,8 @@ public enum ModelNodeDataType {
      */
     BASIS_DATA_ARRAY,
     ;
+
+    public boolean is(ModelNodeDataType dataType) {
+        return this == dataType;
+    }
 }

@@ -4,25 +4,25 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Data;
-import pers.chaos.jsondartserializable.domain.models.ModelGenUserConfig;
-import pers.chaos.jsondartserializable.domain.service.JsonNodeAnalyser;
+import pers.chaos.jsondartserializable.domain.models.forgenerated.ModelGenUserOption;
+import pers.chaos.jsondartserializable.domain.util.JsonNodeUtil;
 
 @Data
-public class InputDataVO {
+public class UserInputData {
     private final String rootClassName;
     private final String rootClassRemark;
     private final String jsonString;
-    private final ModelGenUserConfig userConfig;
+    private final ModelGenUserOption userOption;
 
     @Builder
-    public InputDataVO(String className, String remark, String jsonString, ModelGenUserConfig userConfig) {
+    public UserInputData(String className, String remark, String jsonString, ModelGenUserOption userOption) {
         this.rootClassName = className;
         this.rootClassRemark = remark;
-        this.userConfig = userConfig;
+        this.userOption = userOption;
         this.jsonString = jsonString;
     }
 
     public JsonNode getJsonNode() throws JsonProcessingException {
-        return JsonNodeAnalyser.readJsonObjectNode(jsonString);
+        return JsonNodeUtil.readJsonObjectNode(jsonString);
     }
 }

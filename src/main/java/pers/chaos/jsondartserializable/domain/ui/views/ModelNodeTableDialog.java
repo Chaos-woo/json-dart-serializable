@@ -2,8 +2,8 @@ package pers.chaos.jsondartserializable.domain.ui.views;
 
 import pers.chaos.jsondartserializable.domain.enums.DartDataType;
 import pers.chaos.jsondartserializable.domain.enums.ModelNodeDataType;
-import pers.chaos.jsondartserializable.domain.enums.ModelNodeReflect;
-import pers.chaos.jsondartserializable.domain.models.ModelNode;
+import pers.chaos.jsondartserializable.domain.models.node.ModelNodeReflector;
+import pers.chaos.jsondartserializable.domain.models.node.ModelNode;
 import pers.chaos.jsondartserializable.domain.ui.components.DartDataTypeComboBox;
 import pers.chaos.jsondartserializable.domain.ui.components.DartPropertyRequiredCheckBox;
 import pers.chaos.jsondartserializable.domain.ui.models.UiConst;
@@ -18,7 +18,7 @@ import java.util.Objects;
 
 public class ModelNodeTableDialog extends JDialog {
     private final ModelNode node;
-    private final ModelNodeReflect.Key[] tablesColumnKeys;
+    private final ModelNodeReflector.Key[] tablesColumnKeys;
 
     private JPanel contentPane;
     private JButton buttonConfirm;
@@ -51,7 +51,7 @@ public class ModelNodeTableDialog extends JDialog {
                 JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT
         );
 
-        this.tablesColumnKeys = ModelNodeReflect.Key.sortedByColumnIndexKeys();
+        this.tablesColumnKeys = ModelNodeReflector.Key.sortedByColumnIndexKeys();
 
         // 提前处理表格模型展示数据
         final Object[][] tableModelData = getModelNodeTableModelData();
@@ -67,24 +67,24 @@ public class ModelNodeTableDialog extends JDialog {
         tableModel = (DefaultTableModel) modelNodeTable.getModel();
         // 设置列标题
         Object[] columnTitle = Arrays.stream(this.tablesColumnKeys)
-                .map(ModelNodeReflect.Key::getColumnName)
+                .map(ModelNodeReflector.Key::getColumnName)
                 .toArray();
         tableModel.setColumnIdentifiers(columnTitle);
 
         // 设置Dart数据类型ComboBox渲染类
         modelNodeTable.getColumnModel()
-                .getColumn(ModelNodeReflect.Key.TM_DART_DATA_TYPE.getColumnIndex())
+                .getColumn(ModelNodeReflector.Key.TM_DART_DATA_TYPE.getColumnIndex())
                 .setCellEditor(new DartDataTypeComboBox.DartDataTypeComboBoxCellEditor());
         modelNodeTable.getColumnModel()
-                .getColumn(ModelNodeReflect.Key.TM_DART_DATA_TYPE.getColumnIndex())
+                .getColumn(ModelNodeReflector.Key.TM_DART_DATA_TYPE.getColumnIndex())
                 .setCellRenderer(new DartDataTypeComboBox.DartDataTypeComboBoxRenderer());
 
         // 设置Dart是否为必填字段CheckBox渲染类
         modelNodeTable.getColumnModel()
-                .getColumn(ModelNodeReflect.Key.TM_DART_PROPERTY_REQUIRED.getColumnIndex())
+                .getColumn(ModelNodeReflector.Key.TM_DART_PROPERTY_REQUIRED.getColumnIndex())
                 .setCellEditor(new DartPropertyRequiredCheckBox.DartPropertyRequiredCheckBoxCellEditor());
         modelNodeTable.getColumnModel()
-                .getColumn(ModelNodeReflect.Key.TM_DART_PROPERTY_REQUIRED.getColumnIndex())
+                .getColumn(ModelNodeReflector.Key.TM_DART_PROPERTY_REQUIRED.getColumnIndex())
                 .setCellRenderer(new DartPropertyRequiredCheckBox.DartPropertyRequiredCheckBoxRenderer());
 
         // 设置表格数据
@@ -92,7 +92,7 @@ public class ModelNodeTableDialog extends JDialog {
             tableModel.addRow(data);
         }
 
-        labelClassTitle.setText(String.format("Confirm 『%s』 Model Analysis", node.getTargetMeta().getClassName()));
+        labelClassTitle.setText(String.format("Confirm 『%s』 Model Analysis", node.getOutputMeta().getClassname()));
 
         modelNodeTable.addMouseListener(new MouseAdapter() {
             private long lastClickTime = 0;
@@ -106,12 +106,12 @@ public class ModelNodeTableDialog extends JDialog {
                         int row = modelNodeTable.rowAtPoint(e.getPoint());
                         int column = modelNodeTable.columnAtPoint(e.getPoint());
 
-                        if (ModelNodeReflect.Key.M_JSON_FIELD_NAME.equalsColumn(column)) {
-                            DartDataType dartDataType = (DartDataType) tableModelData[row][ModelNodeReflect.Key.TM_DART_DATA_TYPE.getColumnIndex()];
+                        if (ModelNodeReflector.Key.M_JSON_FIELD_NAME.equalsColumn(column)) {
+                            DartDataType dartDataType = (DartDataType) tableModelData[row][ModelNodeReflector.Key.TM_DART_DATA_TYPE.getColumnIndex()];
                             if (DartDataType.OBJECT == dartDataType) {
                                 String jsonFieldName = (String) modelNodeTable.getValueAt(row, column);
                                 ModelNode filteredModelNode = node.getChildNodes().stream()
-                                        .filter(modelNode -> Objects.equals(modelNode.getMeta().getJsonFieldName(), jsonFieldName))
+                                        .filter(modelNode -> Objects.equals(modelNode.getNodeMeta().getJsonFieldName(), jsonFieldName))
                                         .findFirst()
                                         .orElse(null);
                                 if (Objects.isNull(filteredModelNode)) {
@@ -134,7 +134,7 @@ public class ModelNodeTableDialog extends JDialog {
 
     private void openModelNodePropertiesTableDialog(ModelNode modelNode) {
         ModelNode realModelNode = modelNode;
-        if (ModelNodeDataType.OBJECT_ARRAY == modelNode.getMeta().getModelNodeDataType()) {
+        if (ModelNodeDataType.OBJECT_ARRAY == modelNode.getNodeMeta().getModelNodeDataType()) {
             realModelNode = modelNode.getChildNodes().get(0);
         }
 
@@ -163,7 +163,7 @@ public class ModelNodeTableDialog extends JDialog {
             for (int j = 0; j < tablesColumnKeys.length; j++) {
                 // 初始化时所有格子都可编辑
                 this.editableCellRecords[i][j] = true;
-                ModelNodeReflect.Key key = tablesColumnKeys[j];
+                ModelNodeReflector.Key key = tablesColumnKeys[j];
                 tableData[i][j] = key.reflectRead(childNode);
             }
         }
@@ -180,7 +180,7 @@ public class ModelNodeTableDialog extends JDialog {
                     continue;
                 }
 
-                ModelNodeReflect.Key key = tablesColumnKeys[j];
+                ModelNodeReflector.Key key = tablesColumnKeys[j];
                 Object value = modelNodeTable.getModel().getValueAt(i, j);
                 key.reflectWrite(childChildNode, value);
                 childChildNode.handleMarkJsonKeyAnno();
@@ -195,19 +195,19 @@ public class ModelNodeTableDialog extends JDialog {
      */
     private boolean handleTableCellEditableByRule(final Object[][] tableModelData, int row, int column) {
         // 可被编辑的JSON字段
-        if (ModelNodeReflect.Key.M_JSON_FIELD_NAME.equalsColumn(column)) {
+        if (ModelNodeReflector.Key.M_JSON_FIELD_NAME.equalsColumn(column)) {
             this.editableCellRecords[row][column] = false;
             return false;
         }
 
         // 不可被编辑的JSON字段
-        if (ModelNodeReflect.Key.M_JSON_DATA_TYPE.equalsColumn(column)) {
+        if (ModelNodeReflector.Key.M_JSON_DATA_TYPE.equalsColumn(column)) {
             this.editableCellRecords[row][column] = false;
             return false;
         }
 
         // dart对象类型不可被编辑
-        if (ModelNodeReflect.Key.TM_DART_DATA_TYPE.equalsColumn(column)) {
+        if (ModelNodeReflector.Key.TM_DART_DATA_TYPE.equalsColumn(column)) {
             DartDataType dartDataType = (DartDataType) tableModelData[row][column];
             if (DartDataType.OBJECT == dartDataType) {
                 this.editableCellRecords[row][column] = false;
@@ -216,8 +216,8 @@ public class ModelNodeTableDialog extends JDialog {
         }
 
         // dart基础数据类型不可被编辑为对象类型
-        if (ModelNodeReflect.Key.TM_DART_FILE_NAME.equalsColumn(column)) {
-            DartDataType dartDataType = (DartDataType) tableModelData[row][ModelNodeReflect.Key.TM_DART_FILE_NAME.getColumnIndex()];
+        if (ModelNodeReflector.Key.TM_DART_FILE_NAME.equalsColumn(column)) {
+            DartDataType dartDataType = (DartDataType) tableModelData[row][ModelNodeReflector.Key.TM_DART_FILE_NAME.getColumnIndex()];
             if (DartDataType.OBJECT != dartDataType) {
                 this.editableCellRecords[row][column] = false;
                 return false;
@@ -225,8 +225,8 @@ public class ModelNodeTableDialog extends JDialog {
         }
 
         // 仅有对象类型的才可被编辑类名
-        if (ModelNodeReflect.Key.TM_CLASS_NAME.equalsColumn(column)) {
-            DartDataType dartDataType = (DartDataType) tableModelData[row][ModelNodeReflect.Key.TM_CLASS_NAME.getColumnIndex()];
+        if (ModelNodeReflector.Key.TM_CLASS_NAME.equalsColumn(column)) {
+            DartDataType dartDataType = (DartDataType) tableModelData[row][ModelNodeReflector.Key.TM_CLASS_NAME.getColumnIndex()];
             if (DartDataType.OBJECT != dartDataType) {
                 this.editableCellRecords[row][column] = false;
                 return false;
@@ -234,8 +234,8 @@ public class ModelNodeTableDialog extends JDialog {
         }
 
         // 如果不是dart基本数据类型，那不可编辑默认值数据
-        if (ModelNodeReflect.Key.TM_DART_PROPERTY_DEFAULT_VALUE.equalsColumn(column)) {
-            ModelNodeDataType modelNodeDataType = (ModelNodeDataType) tableModelData[row][ModelNodeReflect.Key.M_JSON_DATA_TYPE.getColumnIndex()];
+        if (ModelNodeReflector.Key.TM_DART_PROPERTY_DEFAULT_VALUE.equalsColumn(column)) {
+            ModelNodeDataType modelNodeDataType = (ModelNodeDataType) tableModelData[row][ModelNodeReflector.Key.M_JSON_DATA_TYPE.getColumnIndex()];
             if (ModelNodeDataType.BASIS_DATA != modelNodeDataType) {
                 this.editableCellRecords[row][column] = false;
                 return false;
