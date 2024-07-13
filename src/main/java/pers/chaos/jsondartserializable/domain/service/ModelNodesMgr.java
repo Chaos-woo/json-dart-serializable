@@ -11,13 +11,12 @@ import lombok.Setter;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
-import pers.chaos.jsondartserializable.domain.enums.DartDataType;
 import pers.chaos.jsondartserializable.domain.enums.ModelNodeDataType;
-import pers.chaos.jsondartserializable.domain.models.node.ModelConst;
-import pers.chaos.jsondartserializable.domain.models.node.ModelNode;
 import pers.chaos.jsondartserializable.domain.models.forgenerated.DartMultiFile;
 import pers.chaos.jsondartserializable.domain.models.forgenerated.DartSingleFile;
 import pers.chaos.jsondartserializable.domain.models.forgenerated.ModelGenUserOption;
+import pers.chaos.jsondartserializable.domain.models.node.ModelDataDefinition;
+import pers.chaos.jsondartserializable.domain.models.node.ModelNode;
 import pers.chaos.jsondartserializable.domain.models.nodedata.ModelNodeMeta;
 import pers.chaos.jsondartserializable.domain.models.nodedata.ModelOutputMeta;
 import pers.chaos.jsondartserializable.domain.repository.FileRepository;
@@ -88,7 +87,7 @@ public class ModelNodesMgr {
             Iterator<Map.Entry<String, JsonNode>> fieldsIter = jsonNode.fields();
             while (fieldsIter.hasNext()) {
                 Map.Entry<String, JsonNode> field = fieldsIter.next();
-                if (StringUtils.equals(ModelConst.MagicKey.objectExt, field.getKey())) {
+                if (StringUtils.equals(ModelDataDefinition.MagicKey.objectExt, field.getKey())) {
                     fieldsIter.remove();
                 }
             }
@@ -97,50 +96,6 @@ public class ModelNodesMgr {
         List<ModelNode> childNodes = rootNode.createChildNodes();
         rootNode.setChildNodes(childNodes);
         this.rootNode = rootNode;
-
-        // 节点初始化后，自动进行用户预选配置处理
-        handleUserConfigAfterRootCreated();
-    }
-
-    /**
-     * 节点初始化后，自动进行用户预选配置处理
-     */
-    private void handleUserConfigAfterRootCreated() {
-        if (userOption.useRealtimeJsonValForDefaultVal()) {
-            // 根据用户配置，使用导入的Json字段值设置模型的默认数据
-            handleRealtimeJsonDefaultValue(rootNode);
-        }
-    }
-
-    /**
-     * 处理预置默认值
-     */
-    private void handleRealtimeJsonDefaultValue(ModelNode modelNode) {
-        // 根据JSON节点值设置dart中基本类型的默认值
-        if (DartDataType.OBJECT != modelNode.getOutputMeta().getDataType()) {
-            JsonNode node = modelNode.getJsonNode();
-            Object value = null;
-            if (node.isBoolean()) {
-                value = node.asBoolean();
-            } else if (node.isTextual()) {
-                value = node.asText();
-            } else if (node.isInt()) {
-                value = node.asInt();
-            } else if (node.isLong()) {
-                value = node.asLong();
-            } else if (node.isBigInteger()) {
-                value = node.bigIntegerValue();
-            } else if (node.isDouble() || node.isFloat()) {
-                value = node.asDouble();
-            } else if (node.isFloat()) {
-                value = node.floatValue();
-            }
-            modelNode.getOutputMeta().setDefaultValue(value);
-        }
-
-        for (ModelNode childNode : modelNode.getChildNodes()) {
-            handleRealtimeJsonDefaultValue(childNode);
-        }
     }
 
     /**

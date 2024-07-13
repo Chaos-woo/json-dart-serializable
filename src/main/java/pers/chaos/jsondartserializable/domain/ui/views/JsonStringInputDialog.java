@@ -81,7 +81,7 @@ public class JsonStringInputDialog extends JDialog {
         buttonClearEdited.addActionListener(e -> {
             mgr = null;
 
-            Messages.showInfoMessage("Your input JSON analysis mapping model cleared", "Clear Success");
+            Messages.showInfoMessage("Cleared all edited data", "Clear Success");
         });
 
         // call onCancel() when cross is clicked

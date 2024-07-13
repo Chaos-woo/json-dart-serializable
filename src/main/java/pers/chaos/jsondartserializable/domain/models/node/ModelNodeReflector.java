@@ -20,16 +20,16 @@ public interface ModelNodeReflector {
      */
     @Getter
     enum Key {
-        M_JSON_FIELD_NAME("jsonFieldName", 0, "JSON field"),
-        M_JSON_DATA_TYPE("modelNodeDataType", 7, "JSON node type"),
+        M_JSON_FIELD_NAME("jsonFieldName", 0, "Json field"),
+        M_JSON_DATA_TYPE("modelNodeDataType", 7, "Json node type"),
 
         TM_DART_PROPERTY_NAME("propertyName", 1, "Dart field"),
         TM_DART_DATA_TYPE("dataType", 2, "Dart basis type"),
         TM_DART_PROPERTY_REQUIRED("isRequired", 3, "Required?"),
         TM_DART_PROPERTY_DEFAULT_VALUE("defaultValue", 4, "Default value"),
         TM_DART_FILE_NAME("filename", 5, "Dart filename"),
-        TM_CLASS_NAME("className", 6, "Dart class name"),
-        TM_REMARK("remark", 8, "Field remark"),
+        TM_CLASS_NAME("classname", 6, "Dart class name"),
+        TM_REMARK("remark", 8, "Remark"),
         ;
 
         private final String property;

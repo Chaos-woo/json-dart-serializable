@@ -4,4 +4,6 @@ public interface StringConst {
     String comma = ",";
     String underline = "_";
     String strikethrough = "-";
+    String semicolon = ";";
+    String colon = ":";
 }

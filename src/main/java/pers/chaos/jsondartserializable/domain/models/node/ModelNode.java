@@ -5,6 +5,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import lombok.Data;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import pers.chaos.jsondartserializable.domain.enums.DartDataType;
 import pers.chaos.jsondartserializable.domain.enums.ModelNodeDataType;
@@ -19,10 +20,7 @@ import pers.chaos.jsondartserializable.domain.service.template.DartGenTemplateMg
 import pers.chaos.jsondartserializable.domain.util.StringConst;
 
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * 模型节点
@@ -40,7 +38,7 @@ public class ModelNode {
     /**
      * 父节点
      */
-    private ModelNode parentNode;
+    private ModelNode parentModelNode;
 
     /**
      * 节点数据
@@ -59,9 +57,9 @@ public class ModelNode {
     private ModelNode() {
     }
 
-    private ModelNode(JsonNode jsonNode, ModelNode parentNode) {
+    private ModelNode(JsonNode jsonNode, ModelNode parentModelNode) {
         this.jsonNode = jsonNode;
-        this.parentNode = parentNode;
+        this.parentModelNode = parentModelNode;
         this.childNodes = new ArrayList<>();
     }
 
@@ -105,57 +103,81 @@ public class ModelNode {
         List<ModelNode> childNodes = new ArrayList<>();
         ModelNodeDataType nodeDataType = nodeMeta.getModelNodeDataType();
         if (ModelNodeDataType.OBJECT_ARRAY == nodeDataType) {
-            JsonNode firstJsonNode = jsonNode.get(0);
-            ModelNode childNode = createChildNode(firstJsonNode, this, nodeMeta.getJsonFieldName());
+            JsonNode firstChildJsonNode = jsonNode.get(0);
+            ModelNode childNode = createChildNode(firstChildJsonNode, this, nodeMeta.getJsonFieldName());
             childNodes.add(childNode);
         } else if (ModelNodeDataType.BASIS_DATA_ARRAY == nodeDataType) {
-            JsonNode firstJsonNode = jsonNode.get(0);
-            ModelNode childNode = createChildNode(firstJsonNode, this, "NORMAL_FIELD_ARRAY");
+            JsonNode firstChildJsonNode = jsonNode.get(0);
+            ModelNode childNode = createChildNode(firstChildJsonNode, this, "NORMAL_FIELD_ARRAY");
             childNodes.add(childNode);
         } else {
-            jsonNode.fieldNames().forEachRemaining(name -> {
-                JsonNode childJsonNode = jsonNode.get(name);
-                ModelNode childNode = createChildNode(childJsonNode, this, name);
+            boolean useJsonSyntaxMode = findRootNode().getRootNodeMgr().getUserOption().useCustomJsonSyntaxForAllClassGenerated();
+            Iterator<String> fieldNames = jsonNode.fieldNames();
+            while (fieldNames.hasNext()) {
+                final String fieldName = fieldNames.next();
+                if (useJsonSyntaxMode && ModelDataDefinition.MagicKey.isMagicKey(fieldName)) {
+                    continue;
+                }
+
+                JsonNode childJsonNode = jsonNode.get(fieldName);
+                ModelNode childNode = createChildNode(childJsonNode, this, fieldName);
                 childNodes.add(childNode);
-            });
+            }
         }
         return childNodes;
     }
 
-    private ModelNode createChildNode(JsonNode jsonNode, ModelNode parentNode, String jsonFieldName) {
-        ModelNode node = new ModelNode(jsonNode, parentNode);
-        ModelNodeMeta meta = createModelMeta(node, jsonFieldName);
-        ModelOutputMeta targetMeta = createModelTargetMeta(node, meta);
-        node.setNodeMeta(meta);
-        node.setOutputMeta(targetMeta);
+    private ModelNode createChildNode(JsonNode jsonNode, ModelNode parentModelNode, String jsonFieldName) {
+        ModelNode modelNode = new ModelNode(jsonNode, parentModelNode);
+        ModelNodeMeta modelMeta = createModelMeta(modelNode, jsonFieldName);
+        modelNode.setNodeMeta(modelMeta);
+        ModelOutputMeta modelOutputMeta = createModelOutputMeta(modelNode, modelMeta);
+        modelNode.setOutputMeta(modelOutputMeta);
 
         // 初始化子节点的子节点
-        List<ModelNode> childNodes = node.createChildNodes();
-        node.setChildNodes(childNodes);
+        List<ModelNode> childNodes = modelNode.createChildNodes();
+        modelNode.setChildNodes(childNodes);
 
-        return node;
+        return modelNode;
     }
 
     /**
      * 创建模型目标元数据
      */
-    private ModelOutputMeta createModelTargetMeta(ModelNode node, ModelNodeMeta meta) {
+    private ModelOutputMeta createModelOutputMeta(ModelNode thisModelNode, ModelNodeMeta nodeMeta) {
+        boolean useJsonSyntaxMode = thisModelNode.findRootNode().getRootNodeMgr().getUserOption().useCustomJsonSyntaxForAllClassGenerated();
+        boolean useRealtimeDefaultValMode = thisModelNode.findRootNode().getRootNodeMgr().getUserOption().useRealtimeJsonValForDefaultVal();
+
         ModelOutputMeta targetMeta = new ModelOutputMeta();
-        ModelNodeDataType modelNodeDataType = meta.getModelNodeDataType();
-        JsonNode jsonNode = node.getJsonNode();
+        ModelNodeDataType modelNodeDataType = nodeMeta.getModelNodeDataType();
+        JsonNode jsonNode = thisModelNode.getJsonNode();
         DartDataType dataType = DartDataType.OBJECT;
-        if (meta.isBasisModelNodeDataType()) {
+        if (nodeMeta.isBasisModelNodeDataType()) {
             if (modelNodeDataType == ModelNodeDataType.BASIS_DATA) {
-                dataType = getDartDataType(jsonNode, meta);
+                if (useJsonSyntaxMode) {
+                    dataType = ModelDataDefinition.findBasisDataType(jsonNode);
+                    if (DartDataType.UNKNOWN.is(dataType)) {
+                        dataType = getDartDataType(jsonNode, nodeMeta);
+                    }
+                } else {
+                    dataType = getDartDataType(jsonNode, nodeMeta);
+                }
             } else if (modelNodeDataType == ModelNodeDataType.BASIS_DATA_ARRAY) {
                 if (!jsonNode.isEmpty()) {
-                    JsonNode firstNode = jsonNode.get(0);
-                    if (firstNode.isObject()) {
+                    JsonNode firstChildJsonNode = jsonNode.get(0);
+                    if (firstChildJsonNode.isObject()) {
                         // 注释 dataType = DartDataType.OBJECT;
-                    } else if (firstNode.isArray()) {
+                    } else if (firstChildJsonNode.isArray()) {
                         throw new RuntimeException("Not support analysis array nesting");
                     } else {
-                        dataType = getDartDataType(firstNode, meta);
+                        if (useJsonSyntaxMode) {
+                            dataType = ModelDataDefinition.findBasisArrayDataType(jsonNode);
+                            if (DartDataType.UNKNOWN.is(dataType)) {
+                                dataType = getDartDataType(firstChildJsonNode, nodeMeta);
+                            }
+                        } else {
+                            dataType = getDartDataType(firstChildJsonNode, nodeMeta);
+                        }
                     }
                 } else {
                     // 原始JSON字符串是个空数组，则默认将数组的基本类型设置为字符串数组
@@ -165,35 +187,137 @@ public class ModelNode {
         }
         targetMeta.setDataType(dataType);
 
-        if (ModelNodeDataType.OBJECT == modelNodeDataType
-                || ModelNodeDataType.OBJECT_ARRAY == modelNodeDataType) {
-            targetMeta.setClassname(DartGenOption.NameGen.CLASS.gen(meta.getJsonFieldName()));
-            targetMeta.setFilename(DartGenOption.NameGen.FILE.gen(meta.getJsonFieldName()));
+        if (ModelNodeDataType.OBJECT == modelNodeDataType) {
+            if (useJsonSyntaxMode) {
+                String dataDefinitionName = ModelDataDefinition.findDataDefinitionName(jsonNode, ModelDataDefinition.DefinitionPosition.CHILD);
+                if (StringUtils.isNotBlank(dataDefinitionName)) {
+                    targetMeta.setClassname(DartGenOption.NameGen.CLASS.gen(dataDefinitionName));
+                    targetMeta.setFilename(DartGenOption.NameGen.FILE.gen(dataDefinitionName));
+                } else {
+                    targetMeta.setClassname(DartGenOption.NameGen.CLASS.gen(nodeMeta.getJsonFieldName()));
+                    targetMeta.setFilename(DartGenOption.NameGen.FILE.gen(nodeMeta.getJsonFieldName()));
+                }
+            } else {
+                targetMeta.setClassname(DartGenOption.NameGen.CLASS.gen(nodeMeta.getJsonFieldName()));
+                targetMeta.setFilename(DartGenOption.NameGen.FILE.gen(nodeMeta.getJsonFieldName()));
+            }
+        } else if (ModelNodeDataType.OBJECT_ARRAY == modelNodeDataType) {
+            if (useJsonSyntaxMode) {
+                JsonNode firstChildJsonNode = jsonNode.get(0);
+                String dataDefinitionName = ModelDataDefinition.findDataDefinitionName(firstChildJsonNode, ModelDataDefinition.DefinitionPosition.CHILD);
+                if (StringUtils.isNotBlank(dataDefinitionName)) {
+                    targetMeta.setClassname(DartGenOption.NameGen.CLASS.gen(dataDefinitionName));
+                    targetMeta.setFilename(DartGenOption.NameGen.FILE.gen(dataDefinitionName));
+                } else {
+                    targetMeta.setClassname(DartGenOption.NameGen.CLASS.gen(nodeMeta.getJsonFieldName()));
+                    targetMeta.setFilename(DartGenOption.NameGen.FILE.gen(nodeMeta.getJsonFieldName()));
+                }
+            } else {
+                targetMeta.setClassname(DartGenOption.NameGen.CLASS.gen(nodeMeta.getJsonFieldName()));
+                targetMeta.setFilename(DartGenOption.NameGen.FILE.gen(nodeMeta.getJsonFieldName()));
+            }
         } else {
             targetMeta.setClassname(null);
             targetMeta.setFilename(null);
         }
-        String propertyName = DartGenOption.NameGen.PROPERTY.gen(meta.getJsonFieldName());
-        targetMeta.setPropertyName(propertyName);
-        targetMeta.setMarkJsonKeyAnno(!Objects.equals(propertyName, meta.getJsonFieldName()));
-        targetMeta.setIsRequired(DartGenOption.Required.yes);
+        String propertyName;
+        String remark = null;
+        Object defaultValue = null;
+        boolean nullable = true;
+        if (useJsonSyntaxMode) {
+            if (ModelNodeDataType.OBJECT == modelNodeDataType) {
+                propertyName = ModelDataDefinition.findDataDefinitionName(jsonNode, ModelDataDefinition.DefinitionPosition.CHILD);
+                remark = ModelDataDefinition.findDataDefinitionRemark(jsonNode, ModelDataDefinition.DefinitionPosition.CHILD);
+                nullable = ModelDataDefinition.findDataDefinitionNullable(jsonNode, ModelDataDefinition.DefinitionPosition.CHILD);
+            } else if (ModelNodeDataType.OBJECT_ARRAY == modelNodeDataType) {
+                JsonNode firstChildJsonNode = jsonNode.get(0);
+                propertyName = ModelDataDefinition.findDataDefinitionName(firstChildJsonNode, ModelDataDefinition.DefinitionPosition.CHILD);
+                remark = ModelDataDefinition.findDataDefinitionRemark(firstChildJsonNode, ModelDataDefinition.DefinitionPosition.CHILD);
+                nullable = ModelDataDefinition.findDataDefinitionNullable(firstChildJsonNode, ModelDataDefinition.DefinitionPosition.CHILD);
+            } else if (ModelNodeDataType.BASIS_DATA_ARRAY == modelNodeDataType) {
+                JsonNode firstChildJsonNode = jsonNode.get(0);
+                propertyName = ModelDataDefinition.findDataDefinitionName(firstChildJsonNode, ModelDataDefinition.DefinitionPosition.SELF);
+                remark = ModelDataDefinition.findDataDefinitionRemark(firstChildJsonNode, ModelDataDefinition.DefinitionPosition.SELF);
+                nullable = ModelDataDefinition.findDataDefinitionNullable(firstChildJsonNode, ModelDataDefinition.DefinitionPosition.SELF);
+            } else if (ModelNodeDataType.BASIS_DATA == modelNodeDataType) {
+                propertyName = ModelDataDefinition.findDataDefinitionName(jsonNode, ModelDataDefinition.DefinitionPosition.SELF);
+                remark = ModelDataDefinition.findDataDefinitionRemark(jsonNode, ModelDataDefinition.DefinitionPosition.SELF);
+                defaultValue = ModelDataDefinition.findDataDefinitionDefaultVal(jsonNode);
+                nullable = ModelDataDefinition.findDataDefinitionNullable(jsonNode, ModelDataDefinition.DefinitionPosition.SELF);
+                if (Objects.isNull(defaultValue) && useRealtimeDefaultValMode) {
+                    defaultValue = getJsonNodeObjectValue(jsonNode);
+                }
+            } else {
+                propertyName = DartGenOption.NameGen.PROPERTY.gen(nodeMeta.getJsonFieldName());
+                if (useRealtimeDefaultValMode) {
+                    defaultValue = getJsonNodeObjectValue(jsonNode);
+                }
+                if (jsonNode.isNull()) {
+                    nullable = true;
+                }
+            }
+
+            if (StringUtils.isBlank(propertyName)) {
+                propertyName = DartGenOption.NameGen.PROPERTY.gen(nodeMeta.getJsonFieldName());
+            }
+
+        } else {
+            propertyName = DartGenOption.NameGen.PROPERTY.gen(nodeMeta.getJsonFieldName());
+            if (useRealtimeDefaultValMode) {
+                defaultValue = getJsonNodeObjectValue(jsonNode);
+            }
+            if (jsonNode.isNull()) {
+                nullable = true;
+            }
+        }
+        targetMeta.setPropertyName(DartGenOption.NameGen.PROPERTY.gen(propertyName));
+        targetMeta.setRemark(remark);
+        targetMeta.setDefaultValue(defaultValue);
+
+        targetMeta.setMarkJsonKeyAnno(!Objects.equals(propertyName, nodeMeta.getJsonFieldName()));
+        targetMeta.setIsRequired(nullable ? DartGenOption.Required.no : DartGenOption.Required.yes);
         return targetMeta;
+    }
+
+    /**
+     * 处理预置默认值
+     */
+    private Object getJsonNodeObjectValue(JsonNode node) {
+        Object value = null;
+        if (node.isBoolean()) {
+            value = node.asBoolean();
+        } else if (node.isTextual()) {
+            value = node.asText();
+        } else if (node.isInt()) {
+            value = node.asInt();
+        } else if (node.isLong()) {
+            value = node.asLong();
+        } else if (node.isBigInteger()) {
+            value = node.bigIntegerValue();
+        } else if (node.isDouble() || node.isFloat()) {
+            value = node.asDouble();
+        } else if (node.isFloat()) {
+            value = node.floatValue();
+        }
+        return value;
     }
 
     /**
      * 获取Dart数据类型
      */
-    private DartDataType getDartDataType(JsonNode jsonNode, ModelNodeMeta meta) {
-        DartDataType dartDataType = DartDataType.OBJECT;
+    private DartDataType getDartDataType(JsonNode jsonNode, ModelNodeMeta nodeMeta) {
+        DartDataType dartDataType = DartDataType.UNKNOWN;
         if (jsonNode.isBoolean()) {
             dartDataType = DartDataType.BOOLEAN;
         } else if (jsonNode.isTextual()) {
-            boolean isDateString = tryParseTextDate(jsonNode.asText(), meta.getJsonFieldName());
+            boolean isDateString = tryParseTextDate(jsonNode.asText(), nodeMeta.getJsonFieldName());
             dartDataType = isDateString ? DartDataType.DATE_TIME : DartDataType.STRING;
         } else if (jsonNode.isInt() || jsonNode.isLong() || jsonNode.isBigInteger()) {
             dartDataType = DartDataType.INT;
         } else if (jsonNode.isDouble() || jsonNode.isFloat()) {
             dartDataType = DartDataType.DOUBLE;
+        } else if (jsonNode.isObject()) {
+            dartDataType = DartDataType.OBJECT;
         }
         return dartDataType;
     }
@@ -294,8 +418,8 @@ public class ModelNode {
 
 
     public ModelNode findRootNode() {
-        if (nodeMeta.getNodeType() != ModelNodeType.ROOT && Objects.nonNull(parentNode)) {
-            return parentNode.findRootNode();
+        if (nodeMeta.getNodeType() != ModelNodeType.ROOT && Objects.nonNull(parentModelNode)) {
+            return parentModelNode.findRootNode();
         } else {
             return this;
         }
