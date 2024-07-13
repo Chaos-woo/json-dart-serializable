@@ -6,10 +6,10 @@
     <!-- Public plugin name should be written in Title Case.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
     <name>Json-Dart-Serializable</name>
-    <version>1.0</version>
+    <version>1.1</version>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor email="785808933@qq.com" url="https://github.com/Chaos-woo">Chao.W</vendor>
+    <vendor email="chaoowoo2233@gmail.com" url="https://github.com/Chaos-woo">Chao.W</vendor>
 
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
@@ -20,43 +20,7 @@
 
     <change-notes>
         <![CDATA[
-        <div>✨ Feature:</div>
-        <div>
-            1. Support JSON string convert to Dart class with @JsonSerializable() and 『Generate』 separate *.dart POJOs;<br/>
-            2. Support preview JSON object or object array tree struct if root node contains them by 『Preview Edit』;<br/>
-            3. Support preview JSON string analysis result and modify editable content by 『Preview Edit』;<br/>
-            4. Support automatically using @JsonKey annotation when detecting JSON field name different from POJO's property;<br/>
-            5. Support for multiple objects to be generated separately to multiple Dart files, or multiple objects to be generated to a single Dart file;<br/>
-            6. Only support JSON string is an object type;<br/>
-            7. Not support JSON array nesting;<br/>
-            8. Strange JSON field names may generate unfriendly object classes, using @JsonKey() annotations to specify the correct name.
-        </dev>
-
-        <br/><br/>
-
-        <div>🔑 Depends:</div>
-        <div>
-            1. <a href=https://pub.dev/packages/json_serializable>json_serializable</a><br/>
-            2. <a href=https://pub.dev/packages/json_annotation>json_annotation</a><br/>
-            3. <a href=https://pub.dev/packages/build_runner>build_runner</a><br/>
-        </dev>
-
-        <br/><br/>
-
-        <div>📖 Change log:</div>
-        <div>
-        V0.2: Fix dart file name modify to UPPER_UNDERSCORE format.<br/>
-        V0.3: Fix dart file name UPPER_CAMEL format can not to UPPER_UNDERSCORE format.<br/>
-        V0.4: Fix create initial dart class [write only runWriteAction() thread] IntelliJ exception tip.<br/>
-        V0.5: Add 『Preview Edit』 function. Click it and custom set any properties as you wish.<br/>
-        V0.6: Remove plugin icon.<br/>
-        V0.7: Fix when user custom first OBJECT child's Dart file name and Dart class name of OBJECT_ARRAY in 『Preview Edit』 , but it is not effect. <br/>
-            Now, you can keep 'messages' property name and use 'Message' class name.<br/>
-        V0.8: Add [Realtime default value] user option. Now, JSON string analysed result will automatically fill default value.<br/>
-        V0.9: Add [All dart class into single file] user option. Now, JSON string's all objects will put into single dart file.<br/>
-        V1.0: Optimize the 『Preview Edit』 and 『Generated』 functions so that after modifying the JSON string, both 『Preview Edit』 and 『Generated』 can retain the edited content.<br/>
-        </div>
-
+        Quickly generate a tree of model nodes through Json and view the Dart data objects to be generated in Json tables.
         ]]>
     </change-notes>
 
