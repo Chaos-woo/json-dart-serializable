@@ -1,4 +1,4 @@
-package pers.chaos.jsondartserializable.domain.models;
+package pers.chaos.jsondartserializable.domain.models.nodedata;
 
 import lombok.Data;
 import pers.chaos.jsondartserializable.domain.enums.ModelNodeDataType;
@@ -26,6 +26,7 @@ public class ModelNodeMeta {
      * 是否是基础数据类型，包含基本数据类型或由基本数据类型构成的数组
      */
     public boolean isBasisModelNodeDataType() {
-        return modelNodeDataType == ModelNodeDataType.BASIS_DATA || modelNodeDataType == ModelNodeDataType.BASIS_DATA_ARRAY;
+        return ModelNodeDataType.BASIS_DATA.is(modelNodeDataType)
+                || ModelNodeDataType.BASIS_DATA_ARRAY.is(modelNodeDataType);
     }
 }

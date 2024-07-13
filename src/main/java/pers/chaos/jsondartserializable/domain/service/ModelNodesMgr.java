@@ -1,8 +1,7 @@
-package pers.chaos.jsondartserializable.domain.models;
+package pers.chaos.jsondartserializable.domain.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.rits.cloning.Cloner;
@@ -12,60 +11,94 @@ import lombok.Setter;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
-import pers.chaos.jsondartserializable.domain.enums.DartConst;
 import pers.chaos.jsondartserializable.domain.enums.DartDataType;
 import pers.chaos.jsondartserializable.domain.enums.ModelNodeDataType;
-import pers.chaos.jsondartserializable.domain.repository.FileRepo;
-import pers.chaos.jsondartserializable.domain.service.JsonNodeAnalyser;
-import pers.chaos.jsondartserializable.domain.ui.models.InputDataVO;
+import pers.chaos.jsondartserializable.domain.models.node.ModelConst;
+import pers.chaos.jsondartserializable.domain.models.node.ModelNode;
+import pers.chaos.jsondartserializable.domain.models.forgenerated.DartMultiFile;
+import pers.chaos.jsondartserializable.domain.models.forgenerated.DartSingleFile;
+import pers.chaos.jsondartserializable.domain.models.forgenerated.ModelGenUserOption;
+import pers.chaos.jsondartserializable.domain.models.nodedata.ModelNodeMeta;
+import pers.chaos.jsondartserializable.domain.models.nodedata.ModelOutputMeta;
+import pers.chaos.jsondartserializable.domain.repository.FileRepository;
+import pers.chaos.jsondartserializable.domain.ui.models.UserInputData;
+import pers.chaos.jsondartserializable.domain.util.JsonNodeUtil;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * 模型节点管理
+ * 模型节点管理器
  */
 @Getter
-public class ModelNodeMgr {
+public class ModelNodesMgr {
+    /**
+     * 原始输入的JSON字符串
+     */
     @Setter
-    private String jsonString;
+    private String originalUserInputJsonString;
+    /**
+     * 用户输入的可选项配置
+     */
     @Setter
-    private ModelGenUserConfig userConfig;
+    private ModelGenUserOption userOption;
+    /**
+     * 记录用户输入的根节点类名
+     */
     @Setter
     private String rootClassName;
+    /**
+     * 记录用户输入的根节点类的备注，描述
+     */
     @Setter
-    private String rootClassRemark;
+    private String userInputRootClassRemark;
 
+    /**
+     * 模型根节点
+     */
     private ModelNode rootNode;
+    /**
+     * 前一模型根节点，用于生成新的模型根节点时数据复制，复制完成后，该变量将被置为NULL
+     */
     private ModelNode preRootNode;
 
-    private FileRepo fileRepo;
+    /**
+     * 文件仓库，用于文件生成
+     */
+    private FileRepository fileRepository;
 
     @Builder
-    public ModelNodeMgr(String jsonString, ModelGenUserConfig userConfig, String rootClassName, String rootClassRemark) {
-        this.jsonString = jsonString;
-        this.userConfig = userConfig;
+    public ModelNodesMgr(String jsonString, ModelGenUserOption userOption, String rootClassName, String rootClassRemark) {
+        this.originalUserInputJsonString = jsonString;
+        this.userOption = userOption;
         this.rootClassName = rootClassName;
-        this.rootClassRemark = rootClassRemark;
+        this.userInputRootClassRemark = rootClassRemark;
     }
 
     /**
      * 分析JSON string并构建模型节点
      */
-    public void analysis() throws JsonProcessingException {
-        JsonNode jsonNode = JsonNodeAnalyser.readJsonObjectNode(jsonString);
+    public void startAnalysisDataAndBuildModelNode() throws JsonProcessingException {
+        JsonNode jsonNode = JsonNodeUtil.readJsonObjectNode(originalUserInputJsonString);
         if (!jsonNode.isObject()) {
-            throw new RuntimeException("Only support analysis object type json node");
+            throw new RuntimeException("Current version only support analysis object type json string");
         }
 
-        ModelNode rootNode = ModelNode.createRoot(jsonNode, rootClassName, rootClassRemark);
+        if (userOption.useCustomJsonSyntaxForAllClassGenerated()) {
+            // 预处理移除根节点中的Json扩展语法
+            Iterator<Map.Entry<String, JsonNode>> fieldsIter = jsonNode.fields();
+            while (fieldsIter.hasNext()) {
+                Map.Entry<String, JsonNode> field = fieldsIter.next();
+                if (StringUtils.equals(ModelConst.MagicKey.objectExt, field.getKey())) {
+                    fieldsIter.remove();
+                }
+            }
+        }
+        ModelNode rootNode = ModelNode.createRoot(this, jsonNode, rootClassName, userInputRootClassRemark);
         List<ModelNode> childNodes = rootNode.createChildNodes();
         rootNode.setChildNodes(childNodes);
-        rootNode.setMgr(this);
         this.rootNode = rootNode;
 
+        // 节点初始化后，自动进行用户预选配置处理
         handleUserConfigAfterRootCreated();
     }
 
@@ -73,7 +106,7 @@ public class ModelNodeMgr {
      * 节点初始化后，自动进行用户预选配置处理
      */
     private void handleUserConfigAfterRootCreated() {
-        if (userConfig.isEnableRealtimeJsonDefaultValueAnalysis()) {
+        if (userOption.useRealtimeJsonValForDefaultVal()) {
             // 根据用户配置，使用导入的Json字段值设置模型的默认数据
             handleRealtimeJsonDefaultValue(rootNode);
         }
@@ -84,7 +117,7 @@ public class ModelNodeMgr {
      */
     private void handleRealtimeJsonDefaultValue(ModelNode modelNode) {
         // 根据JSON节点值设置dart中基本类型的默认值
-        if (DartDataType.OBJECT != modelNode.getTargetMeta().getDataType()) {
+        if (DartDataType.OBJECT != modelNode.getOutputMeta().getDataType()) {
             JsonNode node = modelNode.getJsonNode();
             Object value = null;
             if (node.isBoolean()) {
@@ -102,7 +135,7 @@ public class ModelNodeMgr {
             } else if (node.isFloat()) {
                 value = node.floatValue();
             }
-            modelNode.getTargetMeta().setDefaultValue(value);
+            modelNode.getOutputMeta().setDefaultValue(value);
         }
 
         for (ModelNode childNode : modelNode.getChildNodes()) {
@@ -113,16 +146,16 @@ public class ModelNodeMgr {
     /**
      * 使用用户数据重新构建根节点
      */
-    public void rebuildRootModelNode(InputDataVO inputData) throws JsonProcessingException {
-        jsonString = inputData.getJsonString();
-        userConfig = inputData.getUserConfig();
+    public void rebuildRootModelNode(UserInputData inputData) throws JsonProcessingException {
+        originalUserInputJsonString = inputData.getJsonString();
+        userOption = inputData.getUserOption();
         rootClassName = inputData.getRootClassName();
-        rootClassRemark = inputData.getRootClassRemark();
+        userInputRootClassRemark = inputData.getRootClassRemark();
 
         Cloner cloner = new Cloner();
         // 临时保存当前的节点信息
         preRootNode = cloner.deepClone(rootNode);
-        analysis();
+        startAnalysisDataAndBuildModelNode();
 
         copyModelNodeData(rootNode, "");
 
@@ -132,7 +165,7 @@ public class ModelNodeMgr {
     private void copyModelNodeData(ModelNode node, String parentJsonFieldName) {
         for (ModelNode childNode : node.getChildNodes()) {
             // 获取新的子节点的JSON路径,用于在旧的根节点下查找对应的子节点
-            ModelNodeMeta meta = childNode.getMeta();
+            ModelNodeMeta meta = childNode.getNodeMeta();
             String jsonFieldName = meta.getJsonFieldName();
             if (!meta.isBasisModelNodeDataType()) {
                 String jsonPath = StringUtils.isBlank(parentJsonFieldName) ? jsonFieldName : parentJsonFieldName + "." + jsonFieldName;
@@ -143,26 +176,26 @@ public class ModelNodeMgr {
             String jsonPath = StringUtils.isBlank(parentJsonFieldName) ? jsonFieldName : parentJsonFieldName + "." + jsonFieldName;
             ModelNode oldChildNode = preRootNode.findChildByPath(jsonPath);
             if (Objects.nonNull(oldChildNode)) {
-                ModelTargetMeta oldTargetMeta = oldChildNode.getTargetMeta();
-                ModelTargetMeta targetMeta = childNode.getTargetMeta();
+                ModelOutputMeta oldTargetMeta = oldChildNode.getOutputMeta();
+                ModelOutputMeta targetMeta = childNode.getOutputMeta();
                 targetMeta.setRemark(oldTargetMeta.getRemark());
-                if (oldChildNode.getMeta().isBasisModelNodeDataType()) {
+                if (oldChildNode.getNodeMeta().isBasisModelNodeDataType()) {
                     targetMeta.setDataType(oldTargetMeta.getDataType());
                     targetMeta.setDefaultValue(oldTargetMeta.getDefaultValue());
                 }
                 targetMeta.setIsRequired(oldTargetMeta.getIsRequired());
                 targetMeta.setPropertyName(oldTargetMeta.getPropertyName());
-                if (oldChildNode.getMeta().getModelNodeDataType() == ModelNodeDataType.OBJECT
-                        || oldChildNode.getMeta().getModelNodeDataType() == ModelNodeDataType.OBJECT_ARRAY) {
+                if (oldChildNode.getNodeMeta().getModelNodeDataType() == ModelNodeDataType.OBJECT
+                        || oldChildNode.getNodeMeta().getModelNodeDataType() == ModelNodeDataType.OBJECT_ARRAY) {
                     targetMeta.setFilename(oldTargetMeta.getFilename());
-                    targetMeta.setClassName(oldTargetMeta.getClassName());
+                    targetMeta.setClassname(oldTargetMeta.getClassname());
                 }
             }
         }
     }
 
     public void output(VirtualFile parent, Project project) {
-        this.fileRepo = new FileRepo(parent, project);
+        this.fileRepository = new FileRepository(parent, project);
 
         rebuildModelNodeRemark(rootNode.getChildNodes());
         rebuildObjectTypeModelTargetNames(rootNode);
@@ -171,31 +204,31 @@ public class ModelNodeMgr {
         final Set<String> targetFolderFileNames = new HashSet<>();
         resolveDuplicateNameFiles(targetFolderFileNames, rootNode);
 
-        if (userConfig.isEnableAllClassGeneratedIntoSingleFile()) {
+        if (userOption.useSingleFileForAllClassGenerated()) {
             // 将多个对象类生成在同一个dart文件中
-            SingleDartFile single = rootNode.outputSingleDartFile();
-            fileRepo.createDartFile(single.getNode().getTargetMeta().getFilename(), single.getContent());
+            DartSingleFile single = rootNode.outputSingleDartFile();
+            fileRepository.createDartFile(single.getNode().getOutputMeta().getFilename(), single.getContent());
         } else {
             // 将多个对象类生成在单独的dart文件中
-            List<MultiDartFile> multis = rootNode.getMultiDartFileRecursively();
-            for (MultiDartFile multi : multis) {
-                fileRepo.createDartFile(multi.getNode().getTargetMeta().getFilename(), multi.getContent());
+            List<DartMultiFile> multis = rootNode.getMultiDartFileRecursively();
+            for (DartMultiFile multi : multis) {
+                fileRepository.createDartFile(multi.getNode().getOutputMeta().getFilename(), multi.getContent());
             }
         }
     }
 
     private void rebuildObjectTypeModelTargetNames(ModelNode node) {
-        if (ModelNodeDataType.OBJECT == node.getMeta().getModelNodeDataType()) {
+        if (ModelNodeDataType.OBJECT == node.getNodeMeta().getModelNodeDataType()) {
             for (ModelNode childNode : node.getChildNodes()) {
                 rebuildObjectTypeModelTargetNames(childNode);
             }
         }
 
-        if (ModelNodeDataType.OBJECT_ARRAY == node.getMeta().getModelNodeDataType()
+        if (ModelNodeDataType.OBJECT_ARRAY == node.getNodeMeta().getModelNodeDataType()
                 && CollectionUtils.isNotEmpty(node.getChildNodes())) {
             ModelNode firstChild = node.getChildNodes().get(0);
-            firstChild.getTargetMeta().setClassName(node.getTargetMeta().getClassName());
-            firstChild.getTargetMeta().setFilename(node.getTargetMeta().getFilename());
+            firstChild.getOutputMeta().setClassname(node.getOutputMeta().getClassname());
+            firstChild.getOutputMeta().setFilename(node.getOutputMeta().getFilename());
             for (ModelNode childChildNode : firstChild.getChildNodes()) {
                 rebuildObjectTypeModelTargetNames(childChildNode);
             }
@@ -204,8 +237,8 @@ public class ModelNodeMgr {
 
     private void rebuildModelNodeRemark(List<ModelNode> nodes) {
         for (ModelNode node : nodes) {
-            if (StringUtils.isBlank(node.getTargetMeta().getRemark())) {
-                node.getTargetMeta().setRemark(node.getMeta().getJsonFieldName());
+            if (StringUtils.isBlank(node.getOutputMeta().getRemark())) {
+                node.getOutputMeta().setRemark(node.getNodeMeta().getJsonFieldName());
             }
 
             rebuildModelNodeRemark(node.getChildNodes());
@@ -213,18 +246,18 @@ public class ModelNodeMgr {
     }
 
     private void resolveDuplicateNameFiles(final Set<String> existDartFilenames, ModelNode node) {
-        if (node.getMeta().isBasisModelNodeDataType()) {
+        if (node.getNodeMeta().isBasisModelNodeDataType()) {
             return;
         }
 
-        if (ModelNodeDataType.OBJECT == node.getMeta().getModelNodeDataType()) {
-            String dartFileName = node.getTargetMeta().getFilename();
+        if (ModelNodeDataType.OBJECT == node.getNodeMeta().getModelNodeDataType()) {
+            String dartFileName = node.getOutputMeta().getFilename();
             if (existDartFilenames.contains(dartFileName)) {
                 String antiDuplicateDartFileNameEOF = RandomStringUtils.randomAlphabetic(4);
-                node.getTargetMeta().setFilename(dartFileName + "_" + antiDuplicateDartFileNameEOF);
+                node.getOutputMeta().setFilename(dartFileName + "_" + antiDuplicateDartFileNameEOF);
             }
 
-            existDartFilenames.add(node.getTargetMeta().getFilename());
+            existDartFilenames.add(node.getOutputMeta().getFilename());
         }
 
         for (ModelNode childNode : node.getChildNodes()) {

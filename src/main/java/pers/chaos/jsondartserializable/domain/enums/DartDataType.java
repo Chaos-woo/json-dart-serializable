@@ -10,9 +10,14 @@ public enum DartDataType {
     STRING,
     OBJECT,
     DATE_TIME,
+    // 分析异常使用
+    UNKNOWN,
     ;
 
-    public String toDataStr() {
+    /**
+     * 转换为数据字符串
+     */
+    public String toDartDefinition() {
         switch (this) {
             case INT:
                 return "int";
@@ -26,7 +31,7 @@ public enum DartDataType {
                 return "DateTime";
             case OBJECT:
             default:
-                return "none";
+                return "Unknown";
         }
     }
 }

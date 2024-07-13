@@ -1,4 +1,4 @@
-package pers.chaos.jsondartserializable.common.models;
+package pers.chaos.jsondartserializable.domain.util;
 
 public interface StringConst {
     String comma = ",";

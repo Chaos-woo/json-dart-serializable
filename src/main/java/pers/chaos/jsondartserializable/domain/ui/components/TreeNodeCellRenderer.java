@@ -1,7 +1,7 @@
 package pers.chaos.jsondartserializable.domain.ui.components;
 
 import pers.chaos.jsondartserializable.domain.enums.ModelNodeDataType;
-import pers.chaos.jsondartserializable.domain.ui.models.ModelNodeTreeVO;
+import pers.chaos.jsondartserializable.domain.ui.models.ModelTreeNode;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -17,7 +17,7 @@ public class TreeNodeCellRenderer extends DefaultTreeCellRenderer {
         DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
         String imgPath = "assets/object.png";
         int scale = 20;
-        if (ModelNodeDataType.OBJECT_ARRAY == ((ModelNodeTreeVO) node.getUserObject()).getNode().getMeta().getModelNodeDataType()) {
+        if (ModelNodeDataType.OBJECT_ARRAY == ((ModelTreeNode) node.getUserObject()).getNode().getNodeMeta().getModelNodeDataType()) {
             imgPath = "assets/object_array.png";
         }
 

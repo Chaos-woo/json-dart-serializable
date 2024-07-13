@@ -11,27 +11,29 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.ui.JBColor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pers.chaos.jsondartserializable.domain.models.*;
-import pers.chaos.jsondartserializable.domain.service.JsonNodeAnalyser;
-import pers.chaos.jsondartserializable.domain.ui.models.InputDataVO;
+import pers.chaos.jsondartserializable.domain.models.forgenerated.ModelGenUserOption;
+import pers.chaos.jsondartserializable.domain.models.nodedata.ModelNodeMeta;
+import pers.chaos.jsondartserializable.domain.models.nodedata.ModelOutputMeta;
+import pers.chaos.jsondartserializable.domain.models.node.ModelNode;
+import pers.chaos.jsondartserializable.domain.service.DartGenOption;
+import pers.chaos.jsondartserializable.domain.util.JsonNodeUtil;
+import pers.chaos.jsondartserializable.domain.service.ModelNodesMgr;
+import pers.chaos.jsondartserializable.domain.ui.models.UserInputData;
 import pers.chaos.jsondartserializable.domain.ui.models.UiConst;
-import pers.chaos.jsondartserializable.domain.util.DartUtil;
 import pers.chaos.jsondartserializable.domain.util.NotificationUtil;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 import java.io.IOException;
+import java.net.URI;
 import java.util.Objects;
 
 public class JsonStringInputDialog extends JDialog {
     private static final Logger log = LoggerFactory.getLogger(JsonStringInputDialog.class);
     private final AnActionEvent anActionEvent;
 
-    private ModelNodeMgr mgr;
+    private ModelNodesMgr mgr;
 
     private JPanel contentPane;
     private JButton buttonOK;
@@ -46,6 +48,8 @@ public class JsonStringInputDialog extends JDialog {
     private JTextField textFieldClassDescription;
     private JCheckBox realtimeDefaultValCheckBox;
     private JCheckBox allClassIntoSingleCheckBox;
+    private JCheckBox extensionJsonSyntaxcheckBox;
+    private JLabel syntaxFaq;
 
     public JsonStringInputDialog(AnActionEvent anActionEvent) {
         this.anActionEvent = anActionEvent;
@@ -102,11 +106,11 @@ public class JsonStringInputDialog extends JDialog {
                     String rootClassName = ((JTextField) e.getSource()).getText();
                     mgr.setRootClassName(rootClassName);
                     ModelNode rootNode = mgr.getRootNode();
-                    ModelNodeMeta meta = rootNode.getMeta();
+                    ModelNodeMeta meta = rootNode.getNodeMeta();
                     meta.setJsonFieldName(rootClassName);
-                    ModelTargetMeta targetMeta = rootNode.getTargetMeta();
-                    targetMeta.setClassName(DartUtil.toClassName(rootClassName));
-                    targetMeta.setFilename(DartUtil.toFileName(rootClassName));
+                    ModelOutputMeta targetMeta = rootNode.getOutputMeta();
+                    targetMeta.setClassname(DartGenOption.NameGen.CLASS.gen(rootClassName));
+                    targetMeta.setFilename(DartGenOption.NameGen.FILE.gen(rootClassName));
                 }
             }
 
@@ -124,8 +128,8 @@ public class JsonStringInputDialog extends JDialog {
             public void keyReleased(KeyEvent e) {
                 if (Objects.nonNull(mgr)) {
                     String rootClassRemark = ((JTextField) e.getSource()).getText();
-                    mgr.setRootClassRemark(rootClassRemark);
-                    mgr.getRootNode().getTargetMeta().setRemark(rootClassRemark);
+                    mgr.setUserInputRootClassRemark(rootClassRemark);
+                    mgr.getRootNode().getOutputMeta().setRemark(rootClassRemark);
                 }
             }
 
@@ -137,22 +141,60 @@ public class JsonStringInputDialog extends JDialog {
             public void keyPressed(KeyEvent e) {
             }
         });
+
+        syntaxFaq.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                openFaqDialog();
+            }
+        });
+    }
+
+    private void openFaqDialog() {
+        String link = "https://github.com/Chaos-woo/json-dart-serializable";
+        CommonDialog alertDialog = new CommonDialog(
+                "Please copy the URI: " + link + " and open it or click OK button to skip github to read the JSON extension syntax guide, " +
+                        "but be aware that the attempt to open it may fail due to security reasons.", () -> {
+            try {
+                // 检查Desktop类是否支持打开URI
+                if (Desktop.isDesktopSupported()) {
+                    Desktop desktop = Desktop.getDesktop();
+                    // 将链接转换为URI
+                    URI uri = new URI(link);
+                    // 打开URI
+                    desktop.browse(uri);
+                }
+            } catch (Exception ex) {
+                // do nothing
+            }
+        });
+        alertDialog.setTitle("JSON extension syntax guide");
+        Point location = getLocation();
+        double movingX = location.getX() + ((double) UiConst.AnalysisDialog.width / 4);
+        if (movingX < 0) {
+            alertDialog.setLocation(location);
+        } else {
+            alertDialog.setLocation((int) movingX, (int) location.getLocation().getY());
+        }
+        alertDialog.setMinimumSize(new Dimension(400, 500));
+        alertDialog.pack();
+        alertDialog.setVisible(true);
     }
 
     private void onPreviewEdit() throws JsonProcessingException {
         if (Objects.isNull(mgr)) {
-            ModelNodeMgr nodeMgr = getModelNodeMgrByUserJsonString();
+            ModelNodesMgr nodeMgr = getModelNodeMgrByUserJsonString();
             if (Objects.isNull(nodeMgr)) {
                 return;
             } else {
-                nodeMgr.analysis();
+                nodeMgr.startAnalysisDataAndBuildModelNode();
                 mgr = nodeMgr;
             }
         }
 
         // 存在已经解析过的根节点时，保留用户已填写的数据，
         // 删除Json中不存在的字段，增加Json中新增的字段解析模型
-        InputDataVO inputData = getUserInputData();
+        UserInputData inputData = getUserInputData();
         if (Objects.isNull(inputData)) {
             return;
         }
@@ -161,7 +203,7 @@ public class JsonStringInputDialog extends JDialog {
         // 根节点的子节点是否不存在对象型子节点
         boolean isRootNodeNotHasObjectChildNode = mgr.getRootNode().getChildNodes()
                 .stream()
-                .allMatch(modelNode -> modelNode.getMeta().isBasisModelNodeDataType());
+                .allMatch(modelNode -> modelNode.getNodeMeta().isBasisModelNodeDataType());
         if (isRootNodeNotHasObjectChildNode) {
             // 根节点无对象/对象数组子节点时直接展示表格形式的属性表
             ModelNodeTableDialog dialog = new ModelNodeTableDialog(mgr.getRootNode());
@@ -193,7 +235,7 @@ public class JsonStringInputDialog extends JDialog {
         }
     }
 
-    private InputDataVO getUserInputData() {
+    private UserInputData getUserInputData() {
         String rootClassName = textFieldClassName.getText().trim();
         String rootClassRemark = textFieldClassDescription.getText();
         String jsonString = textAreaJsonString.getText().trim();
@@ -202,28 +244,29 @@ public class JsonStringInputDialog extends JDialog {
             return null;
         }
 
-        ModelGenUserConfig userConfig = new ModelGenUserConfig();
-        userConfig.setEnableRealtimeJsonDefaultValueAnalysis(realtimeDefaultValCheckBox.isSelected());
-        userConfig.setEnableAllClassGeneratedIntoSingleFile(allClassIntoSingleCheckBox.isSelected());
+        ModelGenUserOption userOption = new ModelGenUserOption();
+        userOption.setEnableRealtimeJsonDefaultValueAnalysis(realtimeDefaultValCheckBox.isSelected());
+        userOption.setEnableAllClassGeneratedIntoSingleFile(allClassIntoSingleCheckBox.isSelected());
+        userOption.setEnableCustomJsonSyntax(extensionJsonSyntaxcheckBox.isSelected());
 
-        return InputDataVO.builder()
+        return UserInputData.builder()
                 .className(rootClassName)
                 .remark(rootClassRemark)
                 .jsonString(jsonString)
-                .userConfig(userConfig)
+                .userOption(userOption)
                 .build();
     }
 
-    private ModelNodeMgr getModelNodeMgrByUserJsonString() {
+    private ModelNodesMgr getModelNodeMgrByUserJsonString() {
         hideErrorLabel();
-        InputDataVO inputData = getUserInputData();
+        UserInputData inputData = getUserInputData();
 
         try {
-            return ModelNodeMgr.builder()
+            return ModelNodesMgr.builder()
                     .jsonString(inputData.getJsonString())
                     .rootClassName(inputData.getRootClassName())
                     .rootClassRemark(inputData.getRootClassRemark())
-                    .userConfig(inputData.getUserConfig())
+                    .userOption(inputData.getUserOption())
                     .build();
         } catch (Exception e) {
             log.error("Build model node error", e);
@@ -236,7 +279,7 @@ public class JsonStringInputDialog extends JDialog {
         hideErrorLabel();
         try {
             // JSON字符串美化
-            String prettyJsonString = JsonNodeAnalyser.getPrettyString(textAreaJsonString.getText().trim());
+            String prettyJsonString = JsonNodeUtil.getPrettyString(textAreaJsonString.getText().trim());
             textAreaJsonString.setText(prettyJsonString);
         } catch (Exception e) {
             showJsonFormatErrorLabel();
@@ -263,16 +306,16 @@ public class JsonStringInputDialog extends JDialog {
 
     private void onGenerate() throws JsonProcessingException {
         if (Objects.isNull(mgr)) {
-            ModelNodeMgr nodeMgr = getModelNodeMgrByUserJsonString();
+            ModelNodesMgr nodeMgr = getModelNodeMgrByUserJsonString();
             if (Objects.isNull(nodeMgr)) {
                 return;
             } else {
-                nodeMgr.analysis();
+                nodeMgr.startAnalysisDataAndBuildModelNode();
                 mgr = nodeMgr;
             }
         }
 
-        InputDataVO inputData = getUserInputData();
+        UserInputData inputData = getUserInputData();
         if (Objects.isNull(inputData)) {
             return;
         }
@@ -287,10 +330,10 @@ public class JsonStringInputDialog extends JDialog {
         VirtualFile parent = anActionEvent.getData(CommonDataKeys.VIRTUAL_FILE);
         if (parent != null && parent.isDirectory()) {
             ModelNode rootNode = mgr.getRootNode();
-            VirtualFile child = parent.findChild(rootNode.getTargetMeta().getFilename() + ".dart");
+            VirtualFile child = parent.findChild(rootNode.getOutputMeta().getFilename() + ".dart");
             if (Objects.nonNull(child)) {
-                Messages.showErrorDialog("Exist " + rootNode.getTargetMeta().getFilename() + ".dart file. Please edit root dart class name 『 "
-                        + rootNode.getTargetMeta().getClassName() + "』", "Json to Dart Convert Fail!!");
+                Messages.showErrorDialog("Exist " + rootNode.getOutputMeta().getFilename() + ".dart file. Please edit root dart class name 『 "
+                        + rootNode.getOutputMeta().getClassname() + "』", "Json to Dart Convert Fail!!");
                 return;
             }
         }
@@ -315,7 +358,7 @@ public class JsonStringInputDialog extends JDialog {
             parent.refresh(false, true);
             NotificationUtil.show(project,
                     "Json to Dart convert success!!",
-                    mgr.getRootNode().getTargetMeta().getFilename() + ".dart generated.",
+                    mgr.getRootNode().getOutputMeta().getFilename() + ".dart generated.",
                     NotificationType.INFORMATION);
         }
     }

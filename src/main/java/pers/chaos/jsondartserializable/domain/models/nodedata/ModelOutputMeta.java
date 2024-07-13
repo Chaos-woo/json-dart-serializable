@@ -1,13 +1,13 @@
-package pers.chaos.jsondartserializable.domain.models;
+package pers.chaos.jsondartserializable.domain.models.nodedata;
 
 import lombok.Data;
 import pers.chaos.jsondartserializable.domain.enums.DartDataType;
 
 /**
- * 模型节点目标属性
+ * 模型节点生成目标元数据
  */
 @Data
-public class ModelTargetMeta {
+public class ModelOutputMeta {
     /**
      * 生成的dart属性名
      */
@@ -19,7 +19,7 @@ public class ModelTargetMeta {
     /**
      * 当前结点类型为Object或数组中的Object时，需要生成对应的dart类名
      */
-    private String className;
+    private String classname;
     /**
      * dart数据类型，例如， String，int
      */

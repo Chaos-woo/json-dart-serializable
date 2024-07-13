@@ -1,4 +1,4 @@
-package pers.chaos.jsondartserializable.domain.service;
+package pers.chaos.jsondartserializable.domain.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -7,9 +7,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Objects;
 
 /**
- * 模型节点分析器
+ * JSON分析器
  */
-public class JsonNodeAnalyser {
+public class JsonNodeUtil {
     private static final ObjectMapper ANALYSER = new ObjectMapper();
     private static final ObjectMapper PRETTY_PRINTER = new ObjectMapper();
 
